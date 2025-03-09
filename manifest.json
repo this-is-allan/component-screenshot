@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ComponentCapture",
+  "name": "Component Capture",
   "version": "1.0",
-  "description": "Capture screenshots of specific page elements by hovering and clicking",
+  "description": "Capture screenshots of specific page elements by hovering and clicking and generate a react component with tailwind or styled components (with AI)",
   "permissions": [
     "activeTab",
     "scripting",
