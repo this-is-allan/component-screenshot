@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component Capture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Component Capture</h1>
+    <div class="toggle-container">
+      <button id="toggleScan" class="toggle-button">Ativar Modo de Escaneamento</button>
+    </div>
+    
+    <div class="history-section">
+      <h2>Histórico de Capturas</h2>
+      <div id="captureHistory" class="history-container">
+        <!-- Capturas recentes serão exibidas aqui -->
+        <div class="empty-history">Nenhuma captura recente</div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <button id="clearHistory" class="secondary-button">Limpar Histórico</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 
