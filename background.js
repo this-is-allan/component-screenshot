@@ -6,7 +6,7 @@ chrome.runtime.onInstalled.addListener(() => {
     captures: []
   });
   
-  console.log('ComponentCapture: Extension installed/updated successfully!');
+  console.log('Component Capture: Extension installed/updated successfully!');
 });
 
 // Listener for messages from other scripts
