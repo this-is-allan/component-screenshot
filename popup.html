@@ -40,6 +40,52 @@
       </div>
     </div>
     
+    <!-- Nova seção para geração de componentes React -->
+    <div class="ai-section">
+      <div class="section-header">
+        <h2><i class="fas fa-robot"></i> AI Component Generator</h2>
+      </div>
+      
+      <div class="ai-settings">
+        <div class="api-key-container">
+          <label for="apiKey">OpenAI API Key:</label>
+          <div class="api-key-input">
+            <input type="password" id="apiKey" placeholder="sk-...">
+            <button id="saveApiKey" class="icon-button" title="Save API Key">
+              <i class="fas fa-save"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="component-options">
+          <label for="componentType">Component Type:</label>
+          <select id="componentType">
+            <option value="react">React</option>
+            <option value="react-tailwind">React + Tailwind</option>
+            <option value="react-styled">React + Styled Components</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="ai-actions">
+        <button id="generateComponent" class="action-button generate-button" disabled>
+          <i class="fas fa-magic"></i> Generate Component
+        </button>
+      </div>
+      
+      <div id="generatedCode" class="code-container hidden">
+        <div class="code-header">
+          <span>Generated React Component</span>
+          <div class="code-actions">
+            <button id="copyCode" class="icon-button" title="Copy Code">
+              <i class="far fa-copy"></i>
+            </button>
+          </div>
+        </div>
+        <pre><code id="codeContent">// Select an image and click Generate Component</code></pre>
+      </div>
+    </div>
+    
     <footer class="app-footer">
       <div class="footer-info">
         <span>ComponentCapture v1.0</span>
