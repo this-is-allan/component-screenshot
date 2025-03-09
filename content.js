@@ -3,14 +3,14 @@
   let currentHighlightedElement = null;
   let overlay = null;
   
-  // Inicializar o estado
+  // Initialize state
   chrome.storage.local.get(['isScanning'], (result) => {
     if (result.isScanning) {
       startScanning();
     }
   });
   
-  // Ouvir mensagens do popup ou background
+  // Listen for messages from popup or background
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'toggleScan') {
       if (message.isScanning) {
@@ -22,101 +22,101 @@
     return true;
   });
   
-  // Iniciar modo de escaneamento
+  // Start scanning mode
   function startScanning() {
     if (isScanning) return;
     
     isScanning = true;
     
-    // Adicionar event listeners
+    // Add event listeners
     document.addEventListener('mouseover', handleMouseOver);
     document.addEventListener('mouseout', handleMouseOut);
     document.addEventListener('click', handleClick, true);
     
-    // Mostrar overlay com instruções
+    // Show overlay with instructions
     showOverlay();
     
-    // Adicionar classe ao body para indicar modo de escaneamento
+    // Add class to body to indicate scanning mode
     document.body.classList.add('component-scanner-active');
   }
   
-  // Parar modo de escaneamento
+  // Stop scanning mode
   function stopScanning() {
     if (!isScanning) return;
     
     isScanning = false;
     
-    // Remover event listeners
+    // Remove event listeners
     document.removeEventListener('mouseover', handleMouseOver);
     document.removeEventListener('mouseout', handleMouseOut);
     document.removeEventListener('click', handleClick, true);
     
-    // Remover highlight do elemento atual
+    // Remove highlight from current element
     if (currentHighlightedElement) {
       currentHighlightedElement.classList.remove('component-scanner-highlight');
       currentHighlightedElement = null;
     }
     
-    // Remover overlay
+    // Remove overlay
     hideOverlay();
     
-    // Remover classe do body
+    // Remove class from body
     document.body.classList.remove('component-scanner-active');
   }
   
-  // Manipular evento mouseover
+  // Handle mouseover event
   function handleMouseOver(event) {
     if (!isScanning) return;
     
-    // Ignorar elementos do overlay
+    // Ignore overlay elements
     if (isPartOfOverlay(event.target)) return;
     
-    // Remover highlight do elemento anterior
+    // Remove highlight from previous element
     if (currentHighlightedElement) {
       currentHighlightedElement.classList.remove('component-scanner-highlight');
     }
     
-    // Adicionar highlight ao elemento atual
+    // Add highlight to current element
     currentHighlightedElement = event.target;
     currentHighlightedElement.classList.add('component-scanner-highlight');
   }
   
-  // Manipular evento mouseout
+  // Handle mouseout event
   function handleMouseOut(event) {
     if (!isScanning || !currentHighlightedElement) return;
     
-    // Remover highlight apenas se o mouseout for do elemento destacado
+    // Remove highlight only if mouseout is from the highlighted element
     if (event.target === currentHighlightedElement) {
       currentHighlightedElement.classList.remove('component-scanner-highlight');
       currentHighlightedElement = null;
     }
   }
   
-  // Manipular evento click
+  // Handle click event
   function handleClick(event) {
     if (!isScanning || !currentHighlightedElement) return;
     
-    // Ignorar elementos do overlay
+    // Ignore overlay elements
     if (isPartOfOverlay(event.target)) return;
     
-    // Prevenir comportamento padrão do clique
+    // Prevent default click behavior
     event.preventDefault();
     event.stopPropagation();
     
-    // Capturar o elemento
+    // Capture the element
     captureElement(currentHighlightedElement);
     
     return false;
   }
   
-  // Verificar se o elemento é parte do overlay
+  // Check if element is part of the overlay
   function isPartOfOverlay(element) {
     return overlay && (overlay === element || overlay.contains(element));
   }
   
-  // Mostrar overlay com instruções
+  // Show overlay with instructions
   function showOverlay() {
-    // Criar overlay se não existir
+    // Create overlay if it doesn't exist
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.className = 'component-scanner-overlay';
@@ -125,20 +125,20 @@
       message.className = 'component-scanner-message';
       
       message.innerHTML = `
-        <h3>Modo de Escaneamento Ativo</h3>
-        <p>Passe o mouse sobre um elemento e clique para capturar.</p>
-        <p>Pressione ESC para sair do modo de escaneamento.</p>
+        <h3>Scanning Mode Active</h3>
+        <p>Hover over an element and click to capture it.</p>
+        <p>Press ESC to exit scanning mode.</p>
       `;
       
       overlay.appendChild(message);
       
-      // Adicionar evento de clique para fechar
+      // Add click event to close
       overlay.addEventListener('click', () => {
         stopScanning();
         chrome.storage.local.set({ isScanning: false });
       });
       
-      // Adicionar evento de tecla ESC
+      // Add ESC key event
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && isScanning) {
           stopScanning();
@@ -147,48 +147,48 @@
       });
     }
     
-    // Adicionar overlay ao DOM
+    // Add overlay to DOM
     document.body.appendChild(overlay);
     
-    // Remover overlay após 3 segundos
+    // Remove overlay after 3 seconds
     setTimeout(() => {
       hideOverlay();
     }, 3000);
   }
   
-  // Esconder overlay
+  // Hide overlay
   function hideOverlay() {
     if (overlay && overlay.parentNode) {
       overlay.parentNode.removeChild(overlay);
     }
   }
   
-  // Capturar elemento
+  // Capture element
   function captureElement(element) {
-    // Obter posição e dimensões do elemento
+    // Get position and dimensions of the element
     const rect = element.getBoundingClientRect();
     
-    // Verificar se o elemento está visível
+    // Check if element is visible
     if (rect.width === 0 || rect.height === 0) {
-      showCaptureMessage('Não foi possível capturar este elemento (dimensões zero).');
+      showCaptureMessage('Could not capture this element (zero dimensions).');
       return;
     }
     
-    // Usar html2canvas para capturar o elemento
+    // Use html2canvas to capture the element
     html2canvas(element, {
       backgroundColor: null,
       logging: false,
       useCORS: true,
       scale: window.devicePixelRatio
     }).then(canvas => {
-      // Converter canvas para dataURL
+      // Convert canvas to dataURL
       const dataUrl = canvas.toDataURL('image/png');
       
-      // Criar thumbnail (versão reduzida para o histórico)
+      // Create thumbnail (reduced version for history)
       const thumbnailCanvas = document.createElement('canvas');
       const thumbnailCtx = thumbnailCanvas.getContext('2d');
       
-      // Definir dimensões do thumbnail
+      // Set thumbnail dimensions
       const maxThumbnailSize = 200;
       let thumbnailWidth = canvas.width;
       let thumbnailHeight = canvas.height;
@@ -208,17 +208,17 @@
       thumbnailCanvas.width = thumbnailWidth;
       thumbnailCanvas.height = thumbnailHeight;
       
-      // Desenhar imagem redimensionada
+      // Draw resized image
       thumbnailCtx.drawImage(canvas, 0, 0, thumbnailWidth, thumbnailHeight);
       
-      // Obter dataURL do thumbnail
+      // Get dataURL of thumbnail
       const thumbnailDataUrl = thumbnailCanvas.toDataURL('image/png');
       
-      // Salvar captura no histórico
+      // Save capture in history
       chrome.storage.local.get(['captures'], (result) => {
         const captures = result.captures || [];
         
-        // Adicionar nova captura ao início do array
+        // Add new capture to the beginning of the array
         captures.unshift({
           dataUrl,
           thumbnail: thumbnailDataUrl,
@@ -227,83 +227,83 @@
           title: document.title
         });
         
-        // Limitar a 50 capturas
+        // Limit to 50 captures
         if (captures.length > 50) {
           captures.pop();
         }
         
-        // Salvar capturas atualizadas
+        // Save updated captures
         chrome.storage.local.set({ captures }, () => {
-          // Notificar popup sobre nova captura
+          // Notify popup about new capture
           chrome.runtime.sendMessage({ action: 'newCapture' });
           
-          // Copiar para a área de transferência
+          // Copy to clipboard
           copyImageToClipboard(dataUrl);
           
-          // Mostrar mensagem de sucesso
-          showCaptureMessage('Componente capturado com sucesso!');
+          // Show success message
+          showCaptureMessage('Component captured successfully!');
         });
       });
     }).catch(error => {
-      console.error('Erro ao capturar elemento:', error);
-      showCaptureMessage('Erro ao capturar o componente.', true);
+      console.error('Error capturing element:', error);
+      showCaptureMessage('Error capturing the component.', true);
     });
   }
   
-  // Copiar imagem para a área de transferência
+  // Copy image to clipboard
   function copyImageToClipboard(dataUrl) {
-    // Criar um elemento de imagem temporário
+    // Create a temporary image element
     const img = new Image();
     img.src = dataUrl;
     
-    // Quando a imagem carregar, copiar para a área de transferência
+    // When the image loads, copy to clipboard
     img.onload = () => {
-      // Criar um canvas temporário
+      // Create a temporary canvas
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
       canvas.height = img.height;
       
-      // Desenhar a imagem no canvas
+      // Draw the image on the canvas
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
       
-      // Converter para blob e copiar
+      // Convert to blob and copy
       canvas.toBlob(blob => {
         try {
-          // Tentar usar a Clipboard API moderna
+          // Try to use the modern Clipboard API
           navigator.clipboard.write([
             new ClipboardItem({
               [blob.type]: blob
             })
           ]).catch(err => {
-            console.error('Erro ao copiar para a área de transferência:', err);
+            console.error('Error copying to clipboard:', err);
           });
         } catch (e) {
-          console.error('Clipboard API não suportada:', e);
+          console.error('Clipboard API not supported:', e);
         }
       });
     };
   }
   
-  // Mostrar mensagem de captura
+  // Show capture message
   function showCaptureMessage(message, isError = false) {
-    // Criar elemento de mensagem
+    // Create message element
     const messageElement = document.createElement('div');
     messageElement.className = `component-scanner-overlay`;
     
     const messageContent = document.createElement('div');
     messageContent.className = 'component-scanner-message';
     messageContent.innerHTML = `
-      <h3>${isError ? 'Erro' : 'Sucesso'}</h3>
+      <h3>${isError ? 'Error' : 'Success'}</h3>
       <p>${message}</p>
     `;
     
     messageElement.appendChild(messageContent);
     
-    // Adicionar ao DOM
+    // Add to DOM
     document.body.appendChild(messageElement);
     
-    // Remover após 2 segundos
+    // Remove after 2 seconds
     setTimeout(() => {
       if (messageElement.parentNode) {
         messageElement.parentNode.removeChild(messageElement);

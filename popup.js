@@ -7,70 +7,70 @@ document.addEventListener('DOMContentLoaded', () => {
   
   let isScanning = false;
   
-  // Verificar o estado atual do modo de escaneamento
+  // Check the current state of scanning mode
   chrome.storage.local.get(['isScanning'], (result) => {
     isScanning = result.isScanning || false;
     updateToggleButton();
   });
   
-  // Carregar histórico de capturas
+  // Load capture history
   loadCaptureHistory();
   
-  // Alternar modo de escaneamento
+  // Toggle scanning mode
   toggleButton.addEventListener('click', () => {
     isScanning = !isScanning;
     
-    // Adicionar efeito de clique
+    // Add click effect
     toggleButton.classList.add('clicked');
     setTimeout(() => {
       toggleButton.classList.remove('clicked');
     }, 200);
     
-    // Salvar estado
+    // Save state
     chrome.storage.local.set({ isScanning });
     
-    // Atualizar aparência do botão
+    // Update button appearance
     updateToggleButton();
     
-    // Enviar mensagem para a página atual
+    // Send message to current page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleScan', isScanning });
         
-        // Mostrar notificação
+        // Show notification
         if (isScanning) {
-          showNotification('<i class="fas fa-check-circle"></i> Modo de escaneamento ativado');
+          showNotification('<i class="fas fa-check-circle"></i> Scanning mode enabled');
         } else {
-          showNotification('<i class="fas fa-info-circle"></i> Modo de escaneamento desativado');
+          showNotification('<i class="fas fa-info-circle"></i> Scanning mode disabled');
         }
       }
     });
   });
   
-  // Limpar histórico
+  // Clear history
   clearHistoryButton.addEventListener('click', () => {
-    if (confirm('Tem certeza que deseja limpar todo o histórico de capturas?')) {
+    if (confirm('Are you sure you want to clear all capture history?')) {
       chrome.storage.local.set({ captures: [] }, () => {
         loadCaptureHistory();
-        showNotification('<i class="fas fa-trash"></i> Histórico limpo com sucesso');
+        showNotification('<i class="fas fa-trash"></i> History cleared successfully');
       });
     }
   });
   
-  // Atualizar aparência do botão de acordo com o estado
+  // Update button appearance according to state
   function updateToggleButton() {
     if (isScanning) {
-      toggleButtonText.textContent = 'Desativar Escaneamento';
+      toggleButtonText.textContent = 'Disable Scanning';
       toggleButtonIcon.className = 'fas fa-stop';
       toggleButton.classList.add('active');
     } else {
-      toggleButtonText.textContent = 'Ativar Escaneamento';
+      toggleButtonText.textContent = 'Enable Scanning';
       toggleButtonIcon.className = 'fas fa-camera';
       toggleButton.classList.remove('active');
     }
   }
   
-  // Carregar e exibir histórico de capturas
+  // Load and display capture history
   function loadCaptureHistory() {
     chrome.storage.local.get(['captures'], (result) => {
       const captures = result.captures || [];
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         captureHistory.innerHTML = `
           <div class="empty-history">
             <i class="fas fa-camera-retro"></i>
-            <p>Nenhuma captura recente</p>
+            <p>No recent captures</p>
           </div>
         `;
         return;
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       captureHistory.innerHTML = '';
       
-      // Exibir as 10 capturas mais recentes
+      // Display the 10 most recent captures
       captures.slice(0, 10).forEach((capture, index) => {
         const captureItem = document.createElement('div');
         captureItem.className = 'capture-item';
@@ -96,29 +96,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
         
         captureItem.innerHTML = `
-          <img src="${capture.thumbnail}" alt="Captura ${index + 1}" class="capture-thumbnail">
+          <img src="${capture.thumbnail}" alt="Capture ${index + 1}" class="capture-thumbnail">
           <div class="capture-info">
             <div class="capture-time"><i class="far fa-clock"></i> ${formattedDate}</div>
           </div>
           <div class="capture-actions">
-            <button class="action-button copy-button" data-index="${index}" title="Copiar para área de transferência">
-              <i class="far fa-copy"></i> Copiar
+            <button class="action-button copy-button" data-index="${index}" title="Copy to clipboard">
+              <i class="far fa-copy"></i> Copy
             </button>
-            <button class="action-button save-button" data-index="${index}" title="Salvar no computador">
-              <i class="fas fa-download"></i> Salvar
+            <button class="action-button save-button" data-index="${index}" title="Save to computer">
+              <i class="fas fa-download"></i> Save
             </button>
           </div>
         `;
         
         captureHistory.appendChild(captureItem);
         
-        // Adicionar efeito de entrada
+        // Add entry effect
         setTimeout(() => {
           captureItem.classList.add('show');
         }, index * 50);
       });
       
-      // Adicionar event listeners para os botões de ação
+      // Add event listeners for action buttons
       document.querySelectorAll('.copy-button').forEach(button => {
         button.addEventListener('click', (e) => {
           const index = parseInt(e.target.closest('.copy-button').dataset.index);
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Copiar imagem para a área de transferência
+  // Copy image to clipboard
   function copyImageToClipboard(dataUrl) {
     fetch(dataUrl)
       .then(res => res.blob())
@@ -145,15 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
             [blob.type]: blob
           })
         ]).then(() => {
-          showNotification('<i class="fas fa-check-circle"></i> Imagem copiada para a área de transferência!');
+          showNotification('<i class="fas fa-check-circle"></i> Image copied to clipboard!');
         }).catch(err => {
-          console.error('Erro ao copiar para a área de transferência:', err);
-          showNotification('<i class="fas fa-exclamation-circle"></i> Erro ao copiar imagem', true);
+          console.error('Error copying to clipboard:', err);
+          showNotification('<i class="fas fa-exclamation-circle"></i> Error copying image', true);
         });
       });
   }
   
-  // Salvar imagem localmente
+  // Save image locally
   function saveImageLocally(dataUrl) {
     const timestamp = new Date().toISOString().replace(/:/g, '-');
     chrome.downloads.download({
@@ -162,12 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
       saveAs: true
     });
     
-    showNotification('<i class="fas fa-download"></i> Salvando imagem...');
+    showNotification('<i class="fas fa-download"></i> Saving image...');
   }
   
-  // Exibir notificação temporária
+  // Display temporary notification
   function showNotification(message, isError = false) {
-    // Remover notificações existentes
+    // Remove existing notifications
     document.querySelectorAll('.notification').forEach(n => n.remove());
     
     const notification = document.createElement('div');
@@ -188,11 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2500);
   }
   
-  // Ouvir por novas capturas
+  // Listen for new captures
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'newCapture') {
       loadCaptureHistory();
-      showNotification('<i class="fas fa-camera"></i> Nova captura adicionada!');
+      showNotification('<i class="fas fa-camera"></i> New capture added!');
     }
   });
 }); 

@@ -1,17 +1,17 @@
-// Listener para quando a extensão é instalada ou atualizada
+// Listener for when the extension is installed or updated
 chrome.runtime.onInstalled.addListener(() => {
-  // Inicializar o estado da extensão
+  // Initialize extension state
   chrome.storage.local.set({
     isScanning: false,
     captures: []
   });
   
-  console.log('ComponentCapture: Extensão instalada/atualizada com sucesso!');
+  console.log('ComponentCapture: Extension installed/updated successfully!');
 });
 
-// Listener para mensagens de outros scripts
+// Listener for messages from other scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Repassar mensagens relevantes para o popup se estiver aberto
+  // Forward relevant messages to the popup if it's open
   if (message.action === 'newCapture') {
     chrome.runtime.sendMessage({ action: 'newCapture' });
   }
@@ -19,16 +19,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// Listener para cliques no ícone da extensão
+// Listener for clicks on the extension icon
 chrome.action.onClicked.addListener((tab) => {
-  // Se o usuário clicar no ícone da extensão sem abrir o popup,
-  // podemos alternar o modo de escaneamento diretamente
+  // If the user clicks on the extension icon without opening the popup,
+  // we can toggle the scanning mode directly
   chrome.storage.local.get(['isScanning'], (result) => {
     const newState = !result.isScanning;
     
     chrome.storage.local.set({ isScanning: newState });
     
-    // Enviar mensagem para a página atual
+    // Send message to the current page
     chrome.tabs.sendMessage(tab.id, { 
       action: 'toggleScan', 
       isScanning: newState 
