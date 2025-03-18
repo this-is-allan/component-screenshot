@@ -5,11 +5,9 @@
   "description": "Capture page elements with hover and click to generate React components with Tailwind or styled-components using AI",
   "permissions": [
     "activeTab",
-    "scripting",
     "storage",
     "clipboardWrite",
-    "downloads",
-    "tabs"
+    "downloads"
   ],
   "host_permissions": ["<all_urls>", "https://api.openai.com/*"],
   "action": {
