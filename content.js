@@ -18,6 +18,10 @@
       } else {
         stopScanning();
       }
+      // Send response to confirm message was processed
+      if (sendResponse) {
+        sendResponse({ status: 'toggle_processed' });
+      }
     }
     
     // Responder ao ping do background script para verificar se o content script está carregado
@@ -25,6 +29,7 @@
       sendResponse({ status: 'content_script_loaded' });
     }
     
+    // Always return true for asynchronous response
     return true;
   });
   
@@ -241,7 +246,16 @@
         // Save updated captures
         chrome.storage.local.set({ captures }, () => {
           // Notify popup about new capture
-          chrome.runtime.sendMessage({ action: 'newCapture' });
+          try {
+            chrome.runtime.sendMessage({ action: 'newCapture' }, response => {
+              if (chrome.runtime.lastError) {
+                // Silently handle the error - popup might not be open
+                console.log('Unable to notify popup about new capture:', chrome.runtime.lastError.message);
+              }
+            });
+          } catch (error) {
+            console.log('Error sending capture notification:', error);
+          }
           
           // Copy to clipboard
           copyImageToClipboard(dataUrl);

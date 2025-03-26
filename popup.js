@@ -49,18 +49,41 @@ document.addEventListener('DOMContentLoaded', () => {
     updateToggleButton();
     
     // Notificar o background script sobre a mudança de estado
-    chrome.runtime.sendMessage({ action: 'toggleScan', isScanning });
+    try {
+      chrome.runtime.sendMessage({ action: 'toggleScan', isScanning }, response => {
+        if (chrome.runtime.lastError) {
+          console.log('Error notifying background:', chrome.runtime.lastError.message);
+        }
+      });
+    } catch (error) {
+      console.log('Error sending message to background:', error);
+    }
     
     // Send message to current page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleScan', isScanning });
-        
-        // Show notification
-        if (isScanning) {
-          showNotification('<i class="fas fa-check-circle"></i> Scanning mode enabled');
-        } else {
-          showNotification('<i class="fas fa-info-circle"></i> Scanning mode disabled');
+        try {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleScan', isScanning }, response => {
+            if (chrome.runtime.lastError) {
+              console.log('Error sending message to tab:', chrome.runtime.lastError.message);
+              
+              // Content script might not be injected yet, request background script to handle it
+              chrome.runtime.sendMessage({ 
+                action: 'toggleScan', 
+                isScanning,
+                forceInjection: true
+              });
+            } else {
+              // Show notification
+              if (isScanning) {
+                showNotification('<i class="fas fa-check-circle"></i> Scanning mode enabled');
+              } else {
+                showNotification('<i class="fas fa-info-circle"></i> Scanning mode disabled');
+              }
+            }
+          });
+        } catch (error) {
+          console.log('Error sending message to tab:', error);
         }
       }
     });
@@ -382,10 +405,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Listen for new captures
-  chrome.runtime.onMessage.addListener((message) => {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'newCapture') {
       loadCaptureHistory();
       showNotification('<i class="fas fa-camera"></i> New capture added!');
+      
+      // Send response to acknowledge message
+      if (sendResponse) {
+        sendResponse({ status: 'received' });
+      }
     }
+    
+    // Always return true for asynchronous response
+    return true;
   });
 }); 
