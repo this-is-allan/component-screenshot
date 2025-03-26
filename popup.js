@@ -48,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update button appearance
     updateToggleButton();
     
+    // Notificar o background script sobre a mudança de estado
+    chrome.runtime.sendMessage({ action: 'toggleScan', isScanning });
+    
     // Send message to current page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {

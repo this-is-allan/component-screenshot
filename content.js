@@ -19,6 +19,12 @@
         stopScanning();
       }
     }
+    
+    // Responder ao ping do background script para verificar se o content script está carregado
+    if (message.action === 'ping') {
+      sendResponse({ status: 'content_script_loaded' });
+    }
+    
     return true;
   });
   

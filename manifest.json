@@ -7,7 +7,8 @@
     "activeTab",
     "storage",
     "clipboardWrite",
-    "downloads"
+    "downloads",
+    "scripting"
   ],
   "host_permissions": ["https://api.openai.com/*"],
   "action": {
@@ -31,7 +32,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' https://cdnjs.cloudflare.com 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
   "web_accessible_resources": [
     {

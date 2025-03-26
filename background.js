@@ -16,6 +16,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.runtime.sendMessage({ action: 'newCapture' });
   }
   
+  // If the user wants to toggle scanning, ensure content script is injected
+  if (message.action === 'toggleScan' && message.isScanning) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        // Check if content script is already injected
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'ping' }, response => {
+          // If there's an error, the content script isn't loaded yet
+          if (chrome.runtime.lastError) {
+            console.log('Content script not loaded, injecting now...');
+            
+            // First inject html2canvas.min.js
+            chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              files: ['html2canvas.min.js']
+            }).then(() => {
+              // Then inject the content script
+              chrome.scripting.executeScript({
+                target: { tabId: tabs[0].id },
+                files: ['content.js']
+              }).then(() => {
+                // After successful injection, send the toggle message again
+                setTimeout(() => {
+                  chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleScan', isScanning: true });
+                }, 100);
+              });
+            });
+          }
+        });
+      }
+    });
+  }
+  
   return true;
 });
 
