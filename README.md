@@ -2,7 +2,7 @@
 <a href="https://www.buymeacoffee.com/centraldatribo"><img src="https://img.buymeacoffee.com/button-api/?text=give me energy&emoji=&slug=centraldatribo&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" /></a>
 <a href="https://www.buymeacoffee.com/centraldatribo"><img src="https://img.buymeacoffee.com/button-api/?text=give me energy&emoji=&slug=centraldatribo&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" /></a>
 
-# 📸 Element Screenshot - Chrome Extension
+# 📸 Capture web components with AI - Chrome Extension
 
 Easily capture individual web elements with a simple hover and click! 🚀  
 
