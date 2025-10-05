@@ -279,40 +279,20 @@
                el.classList.contains('component-scanner-tooltip');
       }
     }).then(canvas => {
-      // Convert canvas to dataURL
+      // Immediate feedback - stop scanning and show success message first
+      stopScanning();
+      showCaptureMessage('Component captured successfully!');
+      
+      // Convert canvas to dataURL in background
       const dataUrl = canvas.toDataURL('image/png');
       
-      // Create thumbnail (reduced version for history)
-      const thumbnailCanvas = document.createElement('canvas');
-      const thumbnailCtx = thumbnailCanvas.getContext('2d');
+      // Create thumbnail asynchronously with lower quality for speed
+      const thumbnailDataUrl = createThumbnail(canvas);
       
-      // Set thumbnail dimensions
-      const maxThumbnailSize = 200;
-      let thumbnailWidth = canvas.width;
-      let thumbnailHeight = canvas.height;
+      // Copy to clipboard immediately (non-blocking)
+      copyImageToClipboard(dataUrl);
       
-      if (thumbnailWidth > thumbnailHeight) {
-        if (thumbnailWidth > maxThumbnailSize) {
-          thumbnailHeight = (thumbnailHeight * maxThumbnailSize) / thumbnailWidth;
-          thumbnailWidth = maxThumbnailSize;
-        }
-      } else {
-        if (thumbnailHeight > maxThumbnailSize) {
-          thumbnailWidth = (thumbnailWidth * maxThumbnailSize) / thumbnailHeight;
-          thumbnailHeight = maxThumbnailSize;
-        }
-      }
-      
-      thumbnailCanvas.width = thumbnailWidth;
-      thumbnailCanvas.height = thumbnailHeight;
-      
-      // Draw resized image
-      thumbnailCtx.drawImage(canvas, 0, 0, thumbnailWidth, thumbnailHeight);
-      
-      // Get dataURL of thumbnail
-      const thumbnailDataUrl = thumbnailCanvas.toDataURL('image/png');
-      
-      // Save capture in history
+      // Save to storage and notify (combined operations for efficiency)
       chrome.storage.local.get(['captures'], (result) => {
         const captures = result.captures || [];
         
@@ -330,53 +310,61 @@
           captures.pop();
         }
         
-        // Save updated captures
-        chrome.storage.local.set({ captures }, () => {
-          // Notify popup about new capture
-          try {
-            chrome.runtime.sendMessage({ action: 'newCapture' }, () => {
-              if (chrome.runtime.lastError) {
-                // Silently handle the error - popup might not be open
-                console.log('Unable to notify popup about new capture:', chrome.runtime.lastError.message);
-              }
-            });
-          } catch (error) {
-            console.log('Error sending capture notification:', error);
-          }
-          
-          // Copy to clipboard
-          copyImageToClipboard(dataUrl);
-          
-          // Show success message
-          showCaptureMessage('Component captured successfully!');
-          
-          // Stop scanning mode after capture
-          stopScanning();
-          chrome.storage.local.set({ isScanning: false });
-          
-          // Notify background and popup that scanning stopped
-          try {
-            chrome.runtime.sendMessage({ action: 'toggleScan', isScanning: false }, () => {
-              if (chrome.runtime.lastError) {
-                console.log('Unable to notify about scan stop:', chrome.runtime.lastError.message);
-              }
-            });
-            
-            // Request to reopen popup after successful capture
-            chrome.runtime.sendMessage({ action: 'reopenPopup' }, () => {
-              if (chrome.runtime.lastError) {
-                console.log('Unable to request popup reopen:', chrome.runtime.lastError.message);
-              }
-            });
-          } catch (error) {
-            console.log('Error sending scan stop notification:', error);
-          }
+        // Save everything in one operation
+        chrome.storage.local.set({ 
+          captures,
+          isScanning: false 
+        }, () => {
+          // Send all notifications asynchronously without blocking
+          notifyCapture();
         });
       });
     }).catch(error => {
       console.error('Error capturing element:', error);
       showCaptureMessage('Error capturing the component.', true);
     });
+  }
+  
+  // Create thumbnail efficiently
+  function createThumbnail(canvas) {
+    const maxThumbnailSize = 200;
+    const scale = Math.min(maxThumbnailSize / canvas.width, maxThumbnailSize / canvas.height, 1);
+    
+    const thumbnailCanvas = document.createElement('canvas');
+    thumbnailCanvas.width = canvas.width * scale;
+    thumbnailCanvas.height = canvas.height * scale;
+    
+    const ctx = thumbnailCanvas.getContext('2d');
+    ctx.drawImage(canvas, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+    
+    // Use JPEG with lower quality for faster encoding
+    return thumbnailCanvas.toDataURL('image/jpeg', 0.7);
+  }
+  
+  // Send all notifications asynchronously
+  function notifyCapture() {
+    // All notifications in parallel without waiting
+    try {
+      chrome.runtime.sendMessage({ action: 'newCapture' }, () => {
+        if (chrome.runtime.lastError) {
+          console.log('Unable to notify popup:', chrome.runtime.lastError.message);
+        }
+      });
+      
+      chrome.runtime.sendMessage({ action: 'toggleScan', isScanning: false }, () => {
+        if (chrome.runtime.lastError) {
+          console.log('Unable to notify scan stop:', chrome.runtime.lastError.message);
+        }
+      });
+      
+      chrome.runtime.sendMessage({ action: 'reopenPopup' }, () => {
+        if (chrome.runtime.lastError) {
+          console.log('Unable to request popup reopen:', chrome.runtime.lastError.message);
+        }
+      });
+    } catch (error) {
+      console.log('Error sending notifications:', error);
+    }
   }
   
   // Copy image to clipboard (optimized)
