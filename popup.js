@@ -1,11 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const toggleButton = document.getElementById('toggleScan');
-  const toggleButtonText = toggleButton.querySelector('span');
-  const toggleButtonIcon = toggleButton.querySelector('i');
   const captureHistory = document.getElementById('captureHistory');
   const clearHistoryButton = document.getElementById('clearHistory');
-  
-  // Elementos da seção de IA
+
   const apiKeyInput = document.getElementById('apiKey');
   const saveApiKeyButton = document.getElementById('saveApiKey');
   const componentTypeSelect = document.getElementById('componentType');
@@ -13,42 +10,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const generatedCodeContainer = document.getElementById('generatedCode');
   const codeContent = document.getElementById('codeContent');
   const copyCodeButton = document.getElementById('copyCode');
-  
+
   let isScanning = false;
   let selectedCapture = null;
-  
-  // Check the current state of scanning mode
+
   chrome.storage.local.get(['isScanning', 'apiKey'], (result) => {
     isScanning = result.isScanning || false;
     updateToggleButton();
-    
-    // Preencher a chave da API se estiver salva
+
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
-      generateComponentButton.disabled = false;
+      updateGenerateButtonState();
     }
   });
-  
-  // Load capture history
+
   loadCaptureHistory();
-  
-  // Toggle scanning mode
+
   toggleButton.addEventListener('click', () => {
     isScanning = !isScanning;
-    
-    // Add click effect
-    toggleButton.classList.add('clicked');
-    setTimeout(() => {
-      toggleButton.classList.remove('clicked');
-    }, 200);
-    
-    // Save state
     chrome.storage.local.set({ isScanning });
-    
-    // Update button appearance
     updateToggleButton();
-    
-    // Notificar o background script sobre a mudança de estado
+
     try {
       chrome.runtime.sendMessage({ action: 'toggleScan', isScanning }, response => {
         if (chrome.runtime.lastError) {
@@ -58,28 +40,24 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       console.log('Error sending message to background:', error);
     }
-    
-    // Send message to current page
+
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
         try {
           chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleScan', isScanning }, response => {
             if (chrome.runtime.lastError) {
               console.log('Error sending message to tab:', chrome.runtime.lastError.message);
-              
-              // Content script might not be injected yet, request background script to handle it
-              chrome.runtime.sendMessage({ 
-                action: 'toggleScan', 
+              chrome.runtime.sendMessage({
+                action: 'toggleScan',
                 isScanning,
                 forceInjection: true
               });
             } else {
-              // Show notification
-              if (isScanning) {
-                showNotification('<i class="fas fa-check-circle"></i> Scanning mode enabled');
-              } else {
-                showNotification('<i class="fas fa-info-circle"></i> Scanning mode disabled');
-              }
+              showNotification(
+                isScanning
+                  ? '<i class="fas fa-check-circle"></i> Scanning enabled'
+                  : '<i class="fas fa-info-circle"></i> Scanning disabled'
+              );
             }
           });
         } catch (error) {
@@ -88,248 +66,231 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-  
-  // Clear history
+
   clearHistoryButton.addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear all capture history?')) {
+    if (confirm('Clear all captures?')) {
       chrome.storage.local.set({ captures: [] }, () => {
+        selectedCapture = null;
         loadCaptureHistory();
-        showNotification('<i class="fas fa-trash"></i> History cleared successfully');
+        updateGenerateButtonState();
+        showNotification('<i class="fas fa-trash"></i> History cleared');
       });
     }
   });
-  
-  // Salvar a chave da API
+
   saveApiKeyButton.addEventListener('click', () => {
     const apiKey = apiKeyInput.value.trim();
-    
+
     if (apiKey) {
       chrome.storage.local.set({ apiKey }, () => {
-        showNotification('<i class="fas fa-key"></i> API key saved successfully');
-        generateComponentButton.disabled = false;
+        showNotification('<i class="fas fa-check"></i> API key saved');
+        updateGenerateButtonState();
       });
     } else {
-      showNotification('<i class="fas fa-exclamation-circle"></i> Please enter a valid API key', true);
+      showNotification('<i class="fas fa-exclamation-circle"></i> Enter a valid API key', true);
     }
   });
-  
-  // Gerar componente React
-  generateComponentButton.addEventListener('click', () => {
+
+  generateComponentButton.addEventListener('click', async () => {
     if (!selectedCapture) {
-      showNotification('<i class="fas fa-exclamation-circle"></i> Please select an image first', true);
+      showNotification('<i class="fas fa-exclamation-circle"></i> Select a capture first', true);
       return;
     }
-    
-    chrome.storage.local.get(['apiKey'], (result) => {
-      const apiKey = result.apiKey;
-      
-      if (!apiKey) {
-        showNotification('<i class="fas fa-exclamation-circle"></i> API key is required', true);
-        return;
-      }
-      
-      // Mostrar estado de carregamento
-      generateComponentButton.disabled = true;
-      generateComponentButton.innerHTML = '<div class="loading-spinner"></div> Generating...';
-      
-      // Mostrar o container de código
-      generatedCodeContainer.classList.remove('hidden');
-      codeContent.textContent = 'Generating component...';
-      
-      // Obter o tipo de componente selecionado
-      const componentType = componentTypeSelect.value;
-      
-      // Enviar a imagem para a API da OpenAI
-      generateReactComponent(selectedCapture.dataUrl, apiKey, componentType)
-        .then(code => {
-          codeContent.textContent = code;
-          showNotification('<i class="fas fa-check-circle"></i> Component generated successfully!');
-        })
-        .catch(error => {
-          codeContent.textContent = `Error: ${error.message}`;
-          showNotification('<i class="fas fa-exclamation-circle"></i> Error generating component', true);
-        })
-        .finally(() => {
-          generateComponentButton.disabled = false;
-          generateComponentButton.innerHTML = '<i class="fas fa-magic"></i> Generate Component';
-        });
-    });
+
+    const result = await chrome.storage.local.get(['apiKey']);
+    const apiKey = result.apiKey;
+
+    if (!apiKey) {
+      showNotification('<i class="fas fa-exclamation-circle"></i> API key required', true);
+      return;
+    }
+
+    generateComponentButton.disabled = true;
+    generateComponentButton.innerHTML = '<div class="loading-spinner"></div> Generating...';
+
+    generatedCodeContainer.classList.remove('hidden');
+    codeContent.textContent = 'Generating component...';
+
+    const componentType = componentTypeSelect.value;
+
+    try {
+      const code = await generateReactComponent(selectedCapture.dataUrl, apiKey, componentType);
+      codeContent.textContent = code;
+      showNotification('<i class="fas fa-check-circle"></i> Component generated!');
+    } catch (error) {
+      codeContent.textContent = `Error: ${error.message}`;
+      showNotification('<i class="fas fa-exclamation-circle"></i> Generation failed', true);
+    } finally {
+      generateComponentButton.disabled = false;
+      generateComponentButton.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><span>Generate Component</span>';
+    }
   });
-  
-  // Copiar código gerado
+
   copyCodeButton.addEventListener('click', () => {
     const code = codeContent.textContent;
-    
+
     navigator.clipboard.writeText(code)
       .then(() => {
-        showNotification('<i class="fas fa-check-circle"></i> Code copied to clipboard!');
+        showNotification('<i class="fas fa-check"></i> Code copied!');
       })
       .catch(err => {
         console.error('Error copying code:', err);
-        showNotification('<i class="fas fa-exclamation-circle"></i> Error copying code', true);
+        showNotification('<i class="fas fa-exclamation-circle"></i> Copy failed', true);
       });
   });
-  
-  // Update button appearance according to state
+
   function updateToggleButton() {
+    const label = toggleButton.querySelector('.scan-toggle-label');
+    const hint = toggleButton.querySelector('.scan-toggle-hint');
+    const icon = toggleButton.querySelector('.scan-toggle-icon i');
+
     if (isScanning) {
-      toggleButtonText.textContent = 'Disable Scanning';
-      toggleButtonIcon.className = 'fas fa-stop';
+      label.textContent = 'Stop Scanning';
+      hint.textContent = 'Click to disable scan mode';
+      icon.className = 'fas fa-stop';
       toggleButton.classList.add('active');
     } else {
-      toggleButtonText.textContent = 'Enable Scanning';
-      toggleButtonIcon.className = 'fas fa-camera';
+      label.textContent = 'Start Scanning';
+      hint.textContent = 'Hover over elements to capture';
+      icon.className = 'fas fa-camera';
       toggleButton.classList.remove('active');
     }
   }
-  
-  // Load and display capture history
+
   function loadCaptureHistory() {
     chrome.storage.local.get(['captures'], (result) => {
       const captures = result.captures || [];
-      
+
       if (captures.length === 0) {
         captureHistory.innerHTML = `
-          <div class="empty-history">
-            <i class="fas fa-camera-retro"></i>
-            <p>No recent captures</p>
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-camera-retro"></i>
+            </div>
+            <p class="empty-state-text">No captures yet</p>
+            <p class="empty-state-hint">Start scanning to capture elements</p>
           </div>
         `;
         return;
       }
-      
+
       captureHistory.innerHTML = '';
-      
-      // Display the 10 most recent captures
+
       captures.slice(0, 10).forEach((capture, index) => {
-        const captureItem = document.createElement('div');
-        captureItem.className = 'capture-item';
-        
+        const card = document.createElement('div');
+        card.className = 'capture-card';
+        if (selectedCapture && selectedCapture.timestamp === capture.timestamp) {
+          card.classList.add('selected');
+        }
+
         const date = new Date(capture.timestamp);
-        const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-        
-        captureItem.innerHTML = `
-          <img src="${capture.thumbnail}" alt="Capture ${index + 1}" class="capture-thumbnail">
-          <div class="capture-info">
-            <div class="capture-time"><i class="far fa-clock"></i> ${formattedDate}</div>
-          </div>
-          <div class="capture-actions">
-            <button class="action-button copy-button" data-index="${index}" title="Copy to clipboard">
-              <i class="far fa-copy"></i> Copy
-            </button>
-            <button class="action-button save-button" data-index="${index}" title="Save to computer">
-              <i class="fas fa-download"></i> Save
-            </button>
-            <button class="action-button select-button" data-index="${index}" title="Select for AI">
-              <i class="fas fa-magic"></i> Select
-            </button>
+        const timeStr = formatTime(date);
+
+        card.innerHTML = `
+          <img src="${capture.thumbnail}" alt="Capture" class="capture-image">
+          <div class="capture-overlay">
+            <span class="capture-time">
+              <i class="far fa-clock"></i>
+              ${timeStr}
+            </span>
+            <div class="capture-actions">
+              <button class="capture-action copy-action" title="Copy">
+                <i class="far fa-copy"></i>
+              </button>
+              <button class="capture-action save-action" title="Download">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
           </div>
         `;
-        
-        captureHistory.appendChild(captureItem);
-        
-        // Add entry effect
-        setTimeout(() => {
-          captureItem.classList.add('show');
-        }, index * 50);
-      });
-      
-      // Add event listeners for action buttons
-      document.querySelectorAll('.copy-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-          const index = parseInt(e.target.closest('.copy-button').dataset.index);
-          copyImageToClipboard(captures[index].dataUrl);
+
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.capture-action')) {
+            return;
+          }
+
+          document.querySelectorAll('.capture-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedCapture = capture;
+          updateGenerateButtonState();
+          showNotification('<i class="fas fa-check"></i> Capture selected');
         });
-      });
-      
-      document.querySelectorAll('.save-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-          const index = parseInt(e.target.closest('.save-button').dataset.index);
-          saveImageLocally(captures[index].dataUrl);
+
+        const copyBtn = card.querySelector('.copy-action');
+        copyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          copyImageToClipboard(capture.dataUrl);
         });
-      });
-      
-      // Adicionar evento para selecionar imagem para IA
-      document.querySelectorAll('.select-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-          const index = parseInt(e.target.closest('.select-button').dataset.index);
-          
-          // Remover seleção anterior
-          document.querySelectorAll('.capture-item').forEach(item => {
-            item.classList.remove('selected');
-          });
-          
-          // Adicionar seleção atual
-          e.target.closest('.capture-item').classList.add('selected');
-          
-          // Armazenar a captura selecionada
-          selectedCapture = captures[index];
-          
-          // Habilitar o botão de geração se tiver uma chave de API
-          chrome.storage.local.get(['apiKey'], (result) => {
-            if (result.apiKey) {
-              generateComponentButton.disabled = false;
-            }
-          });
-          
-          showNotification('<i class="fas fa-check-circle"></i> Image selected for AI generation');
+
+        const saveBtn = card.querySelector('.save-action');
+        saveBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          saveImageLocally(capture.dataUrl);
         });
+
+        captureHistory.appendChild(card);
       });
     });
   }
-  
-  // Copy image to clipboard
+
+  function updateGenerateButtonState() {
+    chrome.storage.local.get(['apiKey'], (result) => {
+      generateComponentButton.disabled = !result.apiKey || !selectedCapture;
+    });
+  }
+
+  function formatTime(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return date.toLocaleDateString();
+  }
+
   function copyImageToClipboard(dataUrl) {
     fetch(dataUrl)
       .then(res => res.blob())
       .then(blob => {
         navigator.clipboard.write([
-          new ClipboardItem({
-            [blob.type]: blob
-          })
+          new ClipboardItem({ [blob.type]: blob })
         ]).then(() => {
-          showNotification('<i class="fas fa-check-circle"></i> Image copied to clipboard!');
+          showNotification('<i class="fas fa-check"></i> Image copied!');
         }).catch(err => {
-          console.error('Error copying to clipboard:', err);
-          showNotification('<i class="fas fa-exclamation-circle"></i> Error copying image', true);
+          console.error('Error copying:', err);
+          showNotification('<i class="fas fa-exclamation-circle"></i> Copy failed', true);
         });
       });
   }
-  
-  // Save image locally
+
   function saveImageLocally(dataUrl) {
-    const timestamp = new Date().toISOString().replace(/:/g, '-');
+    const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
     chrome.downloads.download({
       url: dataUrl,
-      filename: `component-capture-${timestamp}.png`,
+      filename: `capture-${timestamp}.png`,
       saveAs: true
     });
-    
-    showNotification('<i class="fas fa-download"></i> Saving image...');
+
+    showNotification('<i class="fas fa-download"></i> Downloading...');
   }
-  
-  // Gerar componente React usando a API da OpenAI
+
   async function generateReactComponent(imageDataUrl, apiKey, componentType) {
     try {
-      // Converter dataURL para Blob
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
-      
-      // Criar FormData para enviar a imagem
-      const formData = new FormData();
-      formData.append('image', blob, 'screenshot.png');
-      
-      // Determinar o prompt com base no tipo de componente
       let prompt = "Create a React component that looks exactly like this UI element. Use functional components and hooks.";
-      
+
       if (componentType === 'react-tailwind') {
         prompt = "Create a React component that looks exactly like this UI element. Use functional components, hooks, and Tailwind CSS for styling.";
       } else if (componentType === 'react-styled') {
         prompt = "Create a React component that looks exactly like this UI element. Use functional components, hooks, and styled-components for styling.";
       }
-      
-      // Configurar a requisição para a API da OpenAI
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -344,9 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { type: "text", text: prompt },
                 {
                   type: "image_url",
-                  image_url: {
-                    url: imageDataUrl
-                  }
+                  image_url: { url: imageDataUrl }
                 }
               ]
             }
@@ -354,69 +313,52 @@ document.addEventListener('DOMContentLoaded', () => {
           max_tokens: 2000
         })
       });
-      
-      if (!openaiResponse.ok) {
-        const errorData = await openaiResponse.json();
-        throw new Error(errorData.error?.message || 'Error calling OpenAI API');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'API request failed');
       }
-      
-      const data = await openaiResponse.json();
-      
-      // Extrair o código da resposta
+
+      const data = await response.json();
       const content = data.choices[0].message.content;
-      
-      // Extrair o bloco de código da resposta
+
       const codeBlockRegex = /```(?:jsx|tsx|javascript|js|react)?([\s\S]*?)```/;
       const match = content.match(codeBlockRegex);
-      
+
       if (match && match[1]) {
         return match[1].trim();
       }
-      
-      // Se não encontrar um bloco de código, retornar o conteúdo completo
+
       return content;
     } catch (error) {
       console.error('Error generating component:', error);
       throw error;
     }
   }
-  
-  // Display temporary notification
+
   function showNotification(message, isError = false) {
-    // Remove existing notifications
     document.querySelectorAll('.notification').forEach(n => n.remove());
-    
+
     const notification = document.createElement('div');
     notification.className = `notification ${isError ? 'error' : 'success'}`;
     notification.innerHTML = message;
-    
+
     document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.classList.add('show');
-    }, 10);
-    
+
+    setTimeout(() => notification.classList.add('show'), 10);
+
     setTimeout(() => {
       notification.classList.remove('show');
-      setTimeout(() => {
-        notification.remove();
-      }, 300);
+      setTimeout(() => notification.remove(), 300);
     }, 2500);
   }
-  
-  // Listen for new captures
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'newCapture') {
       loadCaptureHistory();
       showNotification('<i class="fas fa-camera"></i> New capture added!');
-      
-      // Send response to acknowledge message
-      if (sendResponse) {
-        sendResponse({ status: 'received' });
-      }
+      if (sendResponse) sendResponse({ status: 'received' });
     }
-    
-    // Always return true for asynchronous response
     return true;
   });
-}); 
+});

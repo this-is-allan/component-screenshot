@@ -8,94 +8,133 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="container">
-    <header class="app-header">
-      <div class="logo-container">
-        <img src="icons/icon48.png" alt="Logo" class="app-logo">
-        <h1>Capture web components with AI</h1>
-      </div>
-      
-      <div class="toggle-container">
-        <button id="toggleScan" class="toggle-button">
-          <i class="fas fa-camera"></i>
-          <span>Enable Scanning</span>
-        </button>
-      </div>
-    </header>
-    
-    <div class="alert-message">
-      <i class="fas fa-exclamation-circle"></i>
-      <p>If it doesn't work, restart your browser.</p>
-    </div>
-    
-    <div class="history-section">
-      <div class="section-header">
-        <h2><i class="fas fa-history"></i> Capture History</h2>
-        <button id="clearHistory" class="icon-button" title="Clear History">
-          <i class="fas fa-trash-alt"></i>
-        </button>
-      </div>
-      
-      <div id="captureHistory" class="history-container">
-        <!-- Recent captures will be displayed here -->
-        <div class="empty-history">
-          <i class="fas fa-camera-retro"></i>
-          <p>No recent captures</p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Nova seção para geração de componentes React -->
-    <div class="ai-section">
-      <div class="section-header">
-        <h2><i class="fas fa-robot"></i> AI Component Generator</h2>
-      </div>
-      
-      <div class="ai-settings">
-        <div class="api-key-container">
-          <label for="apiKey">OpenAI API Key:</label>
-          <div class="api-key-input">
-            <input type="password" id="apiKey" placeholder="sk-...">
-            <button id="saveApiKey" class="icon-button" title="Save API Key">
-              <i class="fas fa-save"></i>
-            </button>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="brand">
+          <img src="icons/icon48.png" alt="Logo" class="brand-icon">
+          <div class="brand-text">
+            <h1 class="brand-title">Component Capture</h1>
+            <p class="brand-subtitle">AI-Powered Screenshot Tool</p>
           </div>
         </div>
-        
-        <div class="component-options">
-          <label for="componentType">Component Type:</label>
-          <select id="componentType">
-            <option value="react">React</option>
-            <option value="react-tailwind">React + Tailwind</option>
-            <option value="react-styled">React + Styled Components</option>
-          </select>
-        </div>
       </div>
-      
-      <div class="ai-actions">
-        <button id="generateComponent" class="action-button generate-button" disabled>
-          <i class="fas fa-magic"></i> Generate Component
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Scan Control -->
+      <section class="scan-section">
+        <button id="toggleScan" class="scan-toggle">
+          <div class="scan-toggle-icon">
+            <i class="fas fa-camera"></i>
+          </div>
+          <div class="scan-toggle-text">
+            <span class="scan-toggle-label">Start Scanning</span>
+            <span class="scan-toggle-hint">Hover over elements to capture</span>
+          </div>
+          <div class="scan-toggle-indicator"></div>
         </button>
-      </div>
-      
-      <div id="generatedCode" class="code-container hidden">
-        <div class="code-header">
-          <span>Generated React Component</span>
-          <div class="code-actions">
-            <button id="copyCode" class="icon-button" title="Copy Code">
+        <p class="scan-hint">
+          <i class="fas fa-info-circle"></i>
+          If scanning doesn't work, try restarting your browser
+        </p>
+      </section>
+
+      <!-- Capture History -->
+      <section class="captures-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-images"></i>
+            Recent Captures
+          </h2>
+          <button id="clearHistory" class="btn-ghost btn-sm" title="Clear All">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+
+        <div id="captureHistory" class="captures-grid">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-camera-retro"></i>
+            </div>
+            <p class="empty-state-text">No captures yet</p>
+            <p class="empty-state-hint">Start scanning to capture elements</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Generator -->
+      <section class="ai-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-wand-magic-sparkles"></i>
+            AI Component Generator
+          </h2>
+        </div>
+
+        <div class="ai-config">
+          <div class="form-group">
+            <label class="form-label" for="apiKey">
+              <i class="fas fa-key"></i>
+              OpenAI API Key
+            </label>
+            <div class="input-group">
+              <input
+                type="password"
+                id="apiKey"
+                class="form-input"
+                placeholder="sk-proj-..."
+                autocomplete="off"
+              >
+              <button id="saveApiKey" class="btn-primary btn-sm" title="Save Key">
+                <i class="fas fa-check"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="componentType">
+              <i class="fas fa-code"></i>
+              Framework
+            </label>
+            <select id="componentType" class="form-select">
+              <option value="react">React (CSS Modules)</option>
+              <option value="react-tailwind">React + Tailwind CSS</option>
+              <option value="react-styled">React + Styled Components</option>
+            </select>
+          </div>
+
+          <button id="generateComponent" class="btn-primary btn-lg btn-full" disabled>
+            <i class="fas fa-wand-magic-sparkles"></i>
+            <span>Generate Component</span>
+          </button>
+        </div>
+
+        <div id="generatedCode" class="code-block hidden">
+          <div class="code-header">
+            <span class="code-title">
+              <i class="fas fa-code"></i>
+              Generated Component
+            </span>
+            <button id="copyCode" class="btn-ghost btn-sm" title="Copy Code">
               <i class="far fa-copy"></i>
             </button>
           </div>
+          <pre class="code-content"><code id="codeContent">// Select a capture and click Generate Component</code></pre>
         </div>
-        <pre><code id="codeContent">// Select an image and click Generate Component</code></pre>
-      </div>
-    </div>
-    
-    <footer class="app-footer">
-      <div class="footer-info" style="display: flex; flex-direction: column; align-items: center;">
-        <span>Capture web components with AI v1.0.0.2</span>
-        <br />
-        <a href="https://www.buymeacoffee.com/centraldatribo"><img src="https://img.buymeacoffee.com/button-api/?text=give me energy for more&emoji=&slug=centraldatribo&button_colour=000000&font_colour=ffffff&font_family=Comic&outline_colour=ffffff&coffee_colour=FFDD00" /></a>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-content">
+        <span class="footer-version">v1.0.0.2</span>
+        <a href="https://www.buymeacoffee.com/centraldatribo" class="footer-support" target="_blank">
+          <i class="fas fa-heart"></i>
+          Support this project
+        </a>
       </div>
     </footer>
   </div>
