@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Tab elements
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+
   const toggleButton = document.getElementById('toggleScan');
+  const toggleButtonGenerator = document.getElementById('toggleScanGenerator');
   const captureHistory = document.getElementById('captureHistory');
   const clearHistoryButton = document.getElementById('clearHistory');
 
@@ -7,12 +12,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveApiKeyButton = document.getElementById('saveApiKey');
   const componentTypeSelect = document.getElementById('componentType');
   const generateComponentButton = document.getElementById('generateComponent');
+  const convertNowButton = document.getElementById('convertNow');
   const generatedCodeContainer = document.getElementById('generatedCode');
   const codeContent = document.getElementById('codeContent');
   const copyCodeButton = document.getElementById('copyCode');
 
   let isScanning = false;
   let selectedCapture = null;
+  let latestCapture = null;
+
+  // Tab switching logic
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetTab = button.getAttribute('data-tab');
+
+      // Remove active class from all buttons and contents
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+
+      // Add active class to clicked button and corresponding content
+      button.classList.add('active');
+      document.getElementById(`${targetTab}-tab`).classList.add('active');
+
+      // Save active tab to storage
+      chrome.storage.local.set({ activeTab: targetTab });
+    });
+  });
+
+  // Restore active tab from storage
+  chrome.storage.local.get(['activeTab'], (result) => {
+    if (result.activeTab) {
+      const targetButton = document.querySelector(`[data-tab="${result.activeTab}"]`);
+      if (targetButton) {
+        targetButton.click();
+      }
+    }
+  });
 
   chrome.storage.local.get(['isScanning', 'apiKey', 'showCaptureSuccess', 'lastCaptureTime'], (result) => {
     isScanning = result.isScanning || false;
@@ -37,23 +72,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   loadCaptureHistory();
+  loadLatestCapture();
 
   // Listen for messages from content script (e.g., when scanning stops after capture)
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'toggleScan' && message.isScanning === false) {
       isScanning = false;
       updateToggleButton();
+      updateToggleButtonGenerator();
     }
-    
+
     if (message.action === 'newCapture') {
       loadCaptureHistory();
+      loadLatestCapture();
     }
   });
 
-  toggleButton.addEventListener('click', () => {
+  // Function to handle scan toggle
+  function handleScanToggle() {
     isScanning = !isScanning;
     chrome.storage.local.set({ isScanning });
     updateToggleButton();
+    updateToggleButtonGenerator();
 
     try {
       chrome.runtime.sendMessage({ action: 'toggleScan', isScanning }, response => {
@@ -96,7 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.close();
       }, 100);
     }
-  });
+  }
+
+  toggleButton.addEventListener('click', handleScanToggle);
+  toggleButtonGenerator.addEventListener('click', handleScanToggle);
 
   clearHistoryButton.addEventListener('click', () => {
     if (confirm('Clear all captures?')) {
@@ -122,12 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  generateComponentButton.addEventListener('click', async () => {
-    if (!selectedCapture) {
-      showNotification('<i class="fas fa-exclamation-circle"></i> Select a capture first', true);
-      return;
-    }
-
+  async function performCodeGeneration(capture, button) {
     const result = await chrome.storage.local.get(['apiKey']);
     const apiKey = result.apiKey;
 
@@ -136,8 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    generateComponentButton.disabled = true;
-    generateComponentButton.innerHTML = '<div class="loading-spinner"></div> Generating...';
+    const originalButtonHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<div class="loading-spinner"></div> Generating...';
 
     generatedCodeContainer.classList.remove('hidden');
     codeContent.textContent = 'Generating code...';
@@ -145,16 +184,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const componentType = componentTypeSelect.value;
 
     try {
-      const code = await generateCode(selectedCapture.dataUrl, apiKey, componentType);
+      const code = await generateCode(capture.dataUrl, apiKey, componentType);
       codeContent.textContent = code;
       showNotification('<i class="fas fa-check-circle"></i> Code generated!');
+
+      // Scroll to the generated code
+      generatedCodeContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) {
       codeContent.textContent = `Error: ${error.message}`;
       showNotification('<i class="fas fa-exclamation-circle"></i> Generation failed', true);
     } finally {
-      generateComponentButton.disabled = false;
-      generateComponentButton.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><span>Generate Code</span>';
+      button.disabled = false;
+      button.innerHTML = originalButtonHTML;
     }
+  }
+
+  convertNowButton.addEventListener('click', async () => {
+    if (!latestCapture) {
+      showNotification('<i class="fas fa-exclamation-circle"></i> No capture available', true);
+      return;
+    }
+    await performCodeGeneration(latestCapture, convertNowButton);
+  });
+
+  generateComponentButton.addEventListener('click', async () => {
+    if (!selectedCapture) {
+      showNotification('<i class="fas fa-exclamation-circle"></i> Select a capture first', true);
+      return;
+    }
+    await performCodeGeneration(selectedCapture, generateComponentButton);
   });
 
   copyCodeButton.addEventListener('click', () => {
@@ -171,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function updateToggleButton() {
+    if (!toggleButton) return;
     const label = toggleButton.querySelector('.scan-toggle-label');
     const hint = toggleButton.querySelector('.scan-toggle-hint');
     const icon = toggleButton.querySelector('.scan-toggle-icon i');
@@ -185,6 +244,25 @@ document.addEventListener('DOMContentLoaded', () => {
       hint.textContent = 'Hover over elements to capture';
       icon.className = 'fas fa-camera';
       toggleButton.classList.remove('active');
+    }
+  }
+
+  function updateToggleButtonGenerator() {
+    if (!toggleButtonGenerator) return;
+    const label = toggleButtonGenerator.querySelector('.scan-toggle-label');
+    const hint = toggleButtonGenerator.querySelector('.scan-toggle-hint');
+    const icon = toggleButtonGenerator.querySelector('.scan-toggle-icon i');
+
+    if (isScanning) {
+      label.textContent = 'Stop Scanning';
+      hint.textContent = 'Click to disable scan mode';
+      icon.className = 'fas fa-stop';
+      toggleButtonGenerator.classList.add('active');
+    } else {
+      label.textContent = 'Start Scanning';
+      hint.textContent = 'Hover over elements to capture';
+      icon.className = 'fas fa-camera';
+      toggleButtonGenerator.classList.remove('active');
     }
   }
 
@@ -244,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
           card.classList.add('selected');
           selectedCapture = capture;
           updateGenerateButtonState();
+          updateSelectedCapturePreview(capture);
           showNotification('<i class="fas fa-check"></i> Capture selected');
         });
 
@@ -268,6 +347,38 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(['apiKey'], (result) => {
       generateComponentButton.disabled = !result.apiKey || !selectedCapture;
     });
+  }
+
+  function loadLatestCapture() {
+    chrome.storage.local.get(['captures'], (result) => {
+      const captures = result.captures || [];
+      if (captures.length > 0) {
+        latestCapture = captures[0];
+        updateSelectedCapturePreview(latestCapture);
+        convertNowButton.classList.remove('hidden');
+      } else {
+        latestCapture = null;
+        updateSelectedCapturePreview(null);
+        convertNowButton.classList.add('hidden');
+      }
+    });
+  }
+
+  function updateSelectedCapturePreview(capture) {
+    const previewContainer = document.getElementById('selectedCapturePreview');
+    if (capture) {
+      previewContainer.innerHTML = `<img src="${capture.thumbnail}" alt="Selected Capture">`;
+    } else {
+      previewContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fas fa-camera"></i>
+          </div>
+          <p class="empty-state-text">No capture yet</p>
+          <p class="empty-state-hint">Start scanning to capture an element</p>
+        </div>
+      `;
+    }
   }
 
   function formatTime(date) {
@@ -390,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'newCapture') {
       loadCaptureHistory();
+      loadLatestCapture();
       showNotification('<i class="fas fa-camera"></i> New capture added!');
       if (sendResponse) sendResponse({ status: 'received' });
     }

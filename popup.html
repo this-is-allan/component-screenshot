@@ -24,30 +24,67 @@
 
     <!-- Main Content -->
     <main class="main">
-      <!-- Scan Control -->
-      <section class="scan-section">
-        <button id="toggleScan" class="scan-toggle">
-          <div class="scan-toggle-icon">
-            <i class="fas fa-camera"></i>
-          </div>
-          <div class="scan-toggle-text">
-            <span class="scan-toggle-label">Start Scanning</span>
-            <span class="scan-toggle-hint">Hover over elements to capture</span>
-          </div>
-          <div class="scan-toggle-indicator"></div>
+      <!-- Navigation Tabs -->
+      <nav class="tabs-nav">
+        <button class="tab-button active" data-tab="generator">
+          <i class="fas fa-wand-magic-sparkles"></i>
+          <span>Generator</span>
         </button>
-        <p class="scan-hint">
-          <i class="fas fa-info-circle"></i>
-          If scanning doesn't work, try restarting your browser
-        </p>
-      </section>
+        <button class="tab-button" data-tab="history">
+          <i class="fas fa-history"></i>
+          <span>History</span>
+        </button>
+      </nav>
 
-      <!-- AI Generator -->
-      <section class="ai-section">
+      <!-- Generator Tab -->
+      <div class="tab-content active" id="generator-tab">
+        <!-- Scan Control -->
+        <section class="scan-section">
+          <button id="toggleScanGenerator" class="scan-toggle">
+            <div class="scan-toggle-icon">
+              <i class="fas fa-camera"></i>
+            </div>
+            <div class="scan-toggle-text">
+              <span class="scan-toggle-label">Start Scanning</span>
+              <span class="scan-toggle-hint">Hover over elements to capture</span>
+            </div>
+            <div class="scan-toggle-indicator"></div>
+          </button>
+          <p class="scan-hint">
+            <i class="fas fa-info-circle"></i>
+            If scanning doesn't work, try restarting your browser
+          </p>
+        </section>
+
+        <!-- Quick Capture Preview -->
+        <section class="selected-capture-section" id="quickCaptureSection">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-bolt"></i>
+              Latest Capture
+            </h2>
+          </div>
+          <div id="selectedCapturePreview" class="selected-capture-preview">
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="fas fa-camera"></i>
+              </div>
+              <p class="empty-state-text">No capture yet</p>
+              <p class="empty-state-hint">Start scanning to capture an element</p>
+            </div>
+          </div>
+          <button id="convertNow" class="btn-primary btn-lg btn-full convert-now-btn hidden" style="margin-top: 12px;">
+            <i class="fas fa-magic"></i>
+            <span>Generate Code</span>
+          </button>
+        </section>
+
+        <!-- AI Generator -->
+        <section class="ai-section">
         <div class="section-header">
           <h2 class="section-title">
             <i class="fas fa-wand-magic-sparkles"></i>
-            AI Component Generator
+            AI Code Generator
           </h2>
         </div>
 
@@ -103,29 +140,51 @@
           <pre class="code-content"><code id="codeContent">// Select a capture and click Generate</code></pre>
         </div>
       </section>
+      </div>
 
-      <!-- Capture History -->
-      <section class="captures-section">
-        <div class="section-header">
-          <h2 class="section-title">
-            <i class="fas fa-images"></i>
-            Recent Captures
-          </h2>
-          <button id="clearHistory" class="btn-ghost btn-sm" title="Clear All">
-            <i class="fas fa-trash-alt"></i>
-          </button>
-        </div>
-
-        <div id="captureHistory" class="captures-grid">
-          <div class="empty-state">
-            <div class="empty-state-icon">
-              <i class="fas fa-camera-retro"></i>
-            </div>
-            <p class="empty-state-text">No captures yet</p>
-            <p class="empty-state-hint">Start scanning to capture elements</p>
+      <!-- History Tab -->
+      <div class="tab-content" id="history-tab">
+        <!-- Scan Control -->
+        <section class="scan-section">
+        <button id="toggleScan" class="scan-toggle">
+          <div class="scan-toggle-icon">
+            <i class="fas fa-camera"></i>
           </div>
-        </div>
+          <div class="scan-toggle-text">
+            <span class="scan-toggle-label">Start Scanning</span>
+            <span class="scan-toggle-hint">Hover over elements to capture</span>
+          </div>
+          <div class="scan-toggle-indicator"></div>
+        </button>
+        <p class="scan-hint">
+          <i class="fas fa-info-circle"></i>
+          If scanning doesn't work, try restarting your browser
+        </p>
       </section>
+
+        <!-- Capture History -->
+        <section class="captures-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-images"></i>
+              Recent Captures
+            </h2>
+            <button id="clearHistory" class="btn-ghost btn-sm" title="Clear All">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+
+          <div id="captureHistory" class="captures-grid">
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="fas fa-camera-retro"></i>
+              </div>
+              <p class="empty-state-text">No captures yet</p>
+              <p class="empty-state-hint">Start scanning to capture elements</p>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
 
     <!-- Footer -->
