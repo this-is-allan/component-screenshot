@@ -189,6 +189,19 @@ document.addEventListener('DOMContentLoaded', () => {
       codeContent.textContent = code;
       showNotification('<i class="fas fa-check-circle"></i> Code generated!');
 
+      // Save generated code to the capture
+      chrome.storage.local.get(['captures'], (storageResult) => {
+        const captures = storageResult.captures || [];
+        const captureIndex = captures.findIndex(c => c.timestamp === capture.timestamp);
+        if (captureIndex !== -1) {
+          captures[captureIndex].generatedCode = code;
+          captures[captureIndex].componentType = componentType;
+          chrome.storage.local.set({ captures }, () => {
+            loadCaptureHistory();
+          });
+        }
+      });
+
       // Scroll to the generated code
       generatedCodeContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) {
@@ -289,6 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = new Date(capture.timestamp);
         const timeStr = formatTime(date);
 
+        const hasCode = capture.generatedCode ? true : false;
         card.innerHTML = `
           <img src="${capture.thumbnail}" alt="Capture" class="capture-image">
           <div class="capture-overlay">
@@ -297,6 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
               ${timeStr}
             </span>
             <div class="capture-actions">
+              ${hasCode ? `<button class="capture-action view-code-action" title="View Code">
+                <i class="fas fa-code"></i>
+              </button>` : ''}
               <button class="capture-action copy-action" title="Copy">
                 <i class="far fa-copy"></i>
               </button>
@@ -305,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </button>
             </div>
           </div>
+          ${hasCode ? '<div class="code-badge"><i class="fas fa-check-circle"></i></div>' : ''}
         `;
 
         card.addEventListener('click', (e) => {
@@ -319,6 +337,27 @@ document.addEventListener('DOMContentLoaded', () => {
           updateSelectedCapturePreview(capture);
           showNotification('<i class="fas fa-check"></i> Capture selected');
         });
+
+        const viewCodeBtn = card.querySelector('.view-code-action');
+        if (viewCodeBtn) {
+          viewCodeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            codeContent.textContent = capture.generatedCode;
+            generatedCodeContainer.classList.remove('hidden');
+            showNotification('<i class="fas fa-code"></i> Code loaded');
+            // Switch to generator tab to show code
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            const generatorTab = document.querySelector('[data-tab="generator"]');
+            const generatorContent = document.getElementById('generator-tab');
+            generatorTab.classList.add('active');
+            generatorContent.classList.add('active');
+            // Scroll to code
+            setTimeout(() => {
+              generatedCodeContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          });
+        }
 
         const copyBtn = card.querySelector('.copy-action');
         copyBtn.addEventListener('click', (e) => {
