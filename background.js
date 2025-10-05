@@ -25,6 +25,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   }
   
+  // Handle popup reopening request
+  if (message.action === 'reopenPopup') {
+    // Get the current active tab to open popup in the correct context
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        // Show visual feedback that capture was successful and popup can be reopened
+        chrome.action.setBadgeText({ text: '✓' });
+        chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' });
+        
+        // Try to open popup (may not work in all contexts due to Manifest V3 limitations)
+        try {
+          chrome.action.openPopup();
+        } catch (error) {
+          console.log('Unable to open popup automatically (this is normal in Manifest V3):', error);
+        }
+        
+        // Clear the badge after 5 seconds
+        setTimeout(() => {
+          chrome.action.setBadgeText({ text: '' });
+        }, 5000);
+        
+        // Store flag that capture was successful for popup to check when opened
+        chrome.storage.local.set({ 
+          showCaptureSuccess: true,
+          lastCaptureTime: Date.now()
+        });
+      }
+    });
+  }
+  
   // If the user wants to toggle scanning, ensure content script is injected
   if (message.action === 'toggleScan' && (message.isScanning || message.forceInjection)) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

@@ -2,6 +2,9 @@
   let isScanning = false;
   let currentHighlightedElement = null;
   let originalPageTitle = '';
+  let escapeKeyHandler = null;
+  const activeToasts = new Set();
+  let mouseoverThrottle = null;
   
   // Initialize state
   chrome.storage.local.get(['isScanning'], (result) => {
@@ -10,8 +13,30 @@
     }
   });
   
+  // Throttle function to limit event frequency
+  function throttle(func, delay) {
+    let timeoutId = null;
+    let lastRan = 0;
+    
+    return function(...args) {
+      const now = Date.now();
+      const timeSinceLastRan = now - lastRan;
+      
+      if (timeSinceLastRan >= delay) {
+        func.apply(this, args);
+        lastRan = now;
+      } else {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          func.apply(this, args);
+          lastRan = Date.now();
+        }, delay - timeSinceLastRan);
+      }
+    };
+  }
+  
   // Listen for messages from popup or background
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.action === 'toggleScan') {
       if (message.isScanning) {
         startScanning();
@@ -39,8 +64,12 @@
     
     isScanning = true;
     
-    // Add event listeners
-    document.addEventListener('mouseover', handleMouseOver);
+    // Create throttled mouseover handler
+    const throttledMouseOver = throttle(handleMouseOver, 50);
+    mouseoverThrottle = throttledMouseOver;
+    
+    // Add event listeners with optimized handlers
+    document.addEventListener('mouseover', throttledMouseOver);
     document.addEventListener('mouseout', handleMouseOut);
     document.addEventListener('click', handleClick, true);
     
@@ -64,10 +93,21 @@
     
     isScanning = false;
     
-    // Remove event listeners
-    document.removeEventListener('mouseover', handleMouseOver);
+    // Remove event listeners using the throttled version if available
+    if (mouseoverThrottle) {
+      document.removeEventListener('mouseover', mouseoverThrottle);
+      mouseoverThrottle = null;
+    } else {
+      document.removeEventListener('mouseover', handleMouseOver);
+    }
     document.removeEventListener('mouseout', handleMouseOut);
     document.removeEventListener('click', handleClick, true);
+    
+    // Remove ESC key handler
+    if (escapeKeyHandler) {
+      document.removeEventListener('keydown', escapeKeyHandler);
+      escapeKeyHandler = null;
+    }
     
     // Remove highlight from current element
     if (currentHighlightedElement) {
@@ -86,13 +126,11 @@
     // Remove class from body
     document.body.classList.remove('component-scanner-active');
     
-    // Clear any remaining notification elements
-    const existingNotifications = document.querySelectorAll('.component-scanner-toast');
-    existingNotifications.forEach(notification => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
+    // Clear any remaining notification elements efficiently
+    activeToasts.forEach(toast => {
+      toast?.parentNode && toast.remove();
     });
+    activeToasts.clear();
   }
   
   // Handle mouseover event
@@ -140,11 +178,23 @@
     return false;
   }
   
-  // Check if element is part of the toast notification
+  // Check if element is part of the toast notification (optimized)
   function isPartOfOverlay(element) {
-    // Check if element is part of toast notification
-    const toast = element.closest('.component-scanner-toast');
-    return toast !== null;
+    // Quick check: if element has the class itself, return true
+    if (element.classList.contains('component-scanner-toast')) {
+      return true;
+    }
+    
+    // Check if any parent is a toast notification
+    let current = element.parentElement;
+    while (current && current !== document.body) {
+      if (current.classList.contains('component-scanner-toast')) {
+        return true;
+      }
+      current = current.parentElement;
+    }
+    
+    return false;
   }
   
   // Show subtle scanning notification
@@ -162,22 +212,30 @@
       </div>
     `;
     
+    // Add to active toasts tracking
+    activeToasts.add(toast);
     document.body.appendChild(toast);
     
-    // Add ESC key event
-    document.addEventListener('keydown', handleEscapeKey);
+    // Add ESC key event handler only once
+    if (!escapeKeyHandler) {
+      escapeKeyHandler = handleEscapeKey;
+      document.addEventListener('keydown', escapeKeyHandler);
+    }
     
     // Fade in
-    setTimeout(() => {
-      toast.classList.add('show');
-    }, 10);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+    });
     
     // Remove toast after 3 seconds
     setTimeout(() => {
       toast.classList.remove('show');
       setTimeout(() => {
         if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
+          toast.remove();
+          activeToasts.delete(toast);
         }
       }, 300);
     }, 3000);
@@ -203,12 +261,23 @@
       return;
     }
     
+    // Remove highlight before capturing to avoid the outline in the screenshot
+    const hadHighlight = element.classList.contains('component-scanner-highlight');
+    if (hadHighlight) {
+      element.classList.remove('component-scanner-highlight');
+    }
+    
     // Use html2canvas to capture the element
     html2canvas(element, {
       backgroundColor: null,
       logging: false,
       useCORS: true,
-      scale: window.devicePixelRatio
+      scale: window.devicePixelRatio,
+      ignoreElements: (el) => {
+        // Ignore toast notifications and scanner overlays
+        return el.classList.contains('component-scanner-toast') || 
+               el.classList.contains('component-scanner-tooltip');
+      }
     }).then(canvas => {
       // Convert canvas to dataURL
       const dataUrl = canvas.toDataURL('image/png');
@@ -265,7 +334,7 @@
         chrome.storage.local.set({ captures }, () => {
           // Notify popup about new capture
           try {
-            chrome.runtime.sendMessage({ action: 'newCapture' }, response => {
+            chrome.runtime.sendMessage({ action: 'newCapture' }, () => {
               if (chrome.runtime.lastError) {
                 // Silently handle the error - popup might not be open
                 console.log('Unable to notify popup about new capture:', chrome.runtime.lastError.message);
@@ -287,9 +356,16 @@
           
           // Notify background and popup that scanning stopped
           try {
-            chrome.runtime.sendMessage({ action: 'toggleScan', isScanning: false }, response => {
+            chrome.runtime.sendMessage({ action: 'toggleScan', isScanning: false }, () => {
               if (chrome.runtime.lastError) {
                 console.log('Unable to notify about scan stop:', chrome.runtime.lastError.message);
+              }
+            });
+            
+            // Request to reopen popup after successful capture
+            chrome.runtime.sendMessage({ action: 'reopenPopup' }, () => {
+              if (chrome.runtime.lastError) {
+                console.log('Unable to request popup reopen:', chrome.runtime.lastError.message);
               }
             });
           } catch (error) {
@@ -303,27 +379,14 @@
     });
   }
   
-  // Copy image to clipboard
+  // Copy image to clipboard (optimized)
   function copyImageToClipboard(dataUrl) {
-    // Create a temporary image element
-    const img = new Image();
-    img.src = dataUrl;
-    
-    // When the image loads, copy to clipboard
-    img.onload = () => {
-      // Create a temporary canvas
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      // Draw the image on the canvas
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      
-      // Convert to blob and copy
-      canvas.toBlob(blob => {
+    // Convert dataUrl directly to blob and copy
+    fetch(dataUrl)
+      .then(res => res.blob())
+      .then(blob => {
         try {
-          // Try to use the modern Clipboard API
+          // Use the modern Clipboard API
           navigator.clipboard.write([
             new ClipboardItem({
               [blob.type]: blob
@@ -334,8 +397,10 @@
         } catch (e) {
           console.error('Clipboard API not supported:', e);
         }
+      })
+      .catch(err => {
+        console.error('Error converting dataUrl to blob:', err);
       });
-    };
   }
   
   // Show capture message
@@ -354,7 +419,8 @@
       </div>
     `;
     
-    // Add to DOM
+    // Add to active toasts tracking and DOM
+    activeToasts.add(toast);
     document.body.appendChild(toast);
     
     // Remove after 2 seconds
@@ -362,7 +428,8 @@
       toast.classList.remove('show');
       setTimeout(() => {
         if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
+          toast.remove();
+          activeToasts.delete(toast);
         }
       }, 300);
     }, 2000);

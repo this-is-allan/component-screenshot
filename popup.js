@@ -14,13 +14,25 @@ document.addEventListener('DOMContentLoaded', () => {
   let isScanning = false;
   let selectedCapture = null;
 
-  chrome.storage.local.get(['isScanning', 'apiKey'], (result) => {
+  chrome.storage.local.get(['isScanning', 'apiKey', 'showCaptureSuccess', 'lastCaptureTime'], (result) => {
     isScanning = result.isScanning || false;
     updateToggleButton();
 
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
       updateGenerateButtonState();
+    }
+    
+    // Check if we should show capture success message
+    if (result.showCaptureSuccess && result.lastCaptureTime) {
+      const timeSinceCapture = Date.now() - result.lastCaptureTime;
+      // Only show if capture was within the last 10 seconds
+      if (timeSinceCapture < 10000) {
+        showNotification('<i class="fas fa-check-circle"></i> Element captured successfully! Check the history below.');
+        
+        // Clear the flag
+        chrome.storage.local.set({ showCaptureSuccess: false });
+      }
     }
   });
 
@@ -356,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showNotification(message, isError = false) {
-    document.querySelectorAll('.notification').forEach(n => { n.remove(); });
+    document.querySelectorAll('.notification').forEach(n => { n?.remove(); });
 
     const notification = document.createElement('div');
     notification.className = `notification ${isError ? 'error' : 'success'}`;
