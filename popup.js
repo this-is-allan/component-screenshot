@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveApiKeyButton = document.getElementById('saveApiKey');
   const componentTypeSelect = document.getElementById('componentType');
   const generateComponentButton = document.getElementById('generateComponent');
-  const convertNowButton = document.getElementById('convertNow');
   const generatedCodeContainer = document.getElementById('generatedCode');
   const codeContent = document.getElementById('codeContent');
   const copyCodeButton = document.getElementById('copyCode');
@@ -201,20 +200,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  convertNowButton.addEventListener('click', async () => {
-    if (!latestCapture) {
+  generateComponentButton.addEventListener('click', async () => {
+    const captureToUse = selectedCapture || latestCapture;
+    if (!captureToUse) {
       showNotification('<i class="fas fa-exclamation-circle"></i> No capture available', true);
       return;
     }
-    await performCodeGeneration(latestCapture, convertNowButton);
-  });
-
-  generateComponentButton.addEventListener('click', async () => {
-    if (!selectedCapture) {
-      showNotification('<i class="fas fa-exclamation-circle"></i> Select a capture first', true);
-      return;
-    }
-    await performCodeGeneration(selectedCapture, generateComponentButton);
+    await performCodeGeneration(captureToUse, generateComponentButton);
   });
 
   copyCodeButton.addEventListener('click', () => {
@@ -347,7 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateGenerateButtonState() {
     chrome.storage.local.get(['apiKey'], (result) => {
-      generateComponentButton.disabled = !result.apiKey || !selectedCapture;
+      const hasCapture = selectedCapture || latestCapture;
+      generateComponentButton.disabled = !result.apiKey || !hasCapture;
     });
   }
 
@@ -357,12 +350,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (captures.length > 0) {
         latestCapture = captures[0];
         updateSelectedCapturePreview(latestCapture);
-        convertNowButton.classList.remove('hidden');
       } else {
         latestCapture = null;
         updateSelectedCapturePreview(null);
-        convertNowButton.classList.add('hidden');
       }
+      updateGenerateButtonState();
     });
   }
 
