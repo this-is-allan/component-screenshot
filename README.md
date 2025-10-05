@@ -2,6 +2,8 @@
 
 Chrome extension to capture web elements and generate React code with AI.
 
+[Watch Demo](https://youtu.be/ArgyFBOC3Vk)
+
 ## Features
 
 - Hover and click to capture any element
