@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (componentType === 'react-styled') {
         prompt = "Create a React component that looks exactly like this UI element. Use functional components, hooks, and styled-components for styling.";
       } else if (componentType === 'html-css') {
-        prompt = "Create HTML and CSS code that looks exactly like this UI element. Provide clean, semantic HTML with external CSS styling. Structure the code with proper HTML elements and CSS classes.";
+        prompt = "Create HTML and CSS code that looks exactly like this UI element. IMPORTANT: Put both HTML and CSS in a single file using a <style> tag in the <head> section. Provide clean, semantic HTML with internal CSS styling. Structure the code with proper HTML elements and CSS classes.";
       }
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
