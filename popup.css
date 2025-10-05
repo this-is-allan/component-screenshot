@@ -766,17 +766,13 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  color: var(--color-primary);
+  background: #FD0;
+  color: #000;
   text-decoration: none;
   font-weight: 600;
   transition: all var(--transition-fast);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
-}
-
-.footer-support:hover {
-  background: var(--color-primary-light);
-  color: var(--color-primary-hover);
 }
 
 .footer-support i {
