@@ -26,6 +26,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadCaptureHistory();
 
+  // Listen for messages from content script (e.g., when scanning stops after capture)
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'toggleScan' && message.isScanning === false) {
+      isScanning = false;
+      updateToggleButton();
+    }
+    
+    if (message.action === 'newCapture') {
+      loadCaptureHistory();
+    }
+  });
+
   toggleButton.addEventListener('click', () => {
     isScanning = !isScanning;
     chrome.storage.local.set({ isScanning });
@@ -209,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
-          document.querySelectorAll('.capture-card').forEach(c => c.classList.remove('selected'));
+          document.querySelectorAll('.capture-card').forEach(c => { c.classList.remove('selected'); });
           card.classList.add('selected');
           selectedCapture = capture;
           updateGenerateButtonState();
@@ -337,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showNotification(message, isError = false) {
-    document.querySelectorAll('.notification').forEach(n => n.remove());
+    document.querySelectorAll('.notification').forEach(n => { n.remove(); });
 
     const notification = document.createElement('div');
     notification.className = `notification ${isError ? 'error' : 'success'}`;

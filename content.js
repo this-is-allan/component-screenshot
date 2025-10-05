@@ -1,7 +1,7 @@
 (() => {
   let isScanning = false;
   let currentHighlightedElement = null;
-  let overlay = null;
+  let originalPageTitle = '';
   
   // Initialize state
   chrome.storage.local.get(['isScanning'], (result) => {
@@ -44,11 +44,18 @@
     document.addEventListener('mouseout', handleMouseOut);
     document.addEventListener('click', handleClick, true);
     
-    // Show overlay with instructions
-    showOverlay();
+    // Save original page title and update it
+    originalPageTitle = document.title;
+    document.title = '📸 Scanning Mode - ' + originalPageTitle;
+    
+    // Add custom cursor to body
+    document.body.style.cursor = 'crosshair';
     
     // Add class to body to indicate scanning mode
     document.body.classList.add('component-scanner-active');
+    
+    // Show subtle notification instead of full overlay
+    showScanningNotification();
   }
   
   // Stop scanning mode
@@ -68,11 +75,24 @@
       currentHighlightedElement = null;
     }
     
-    // Remove overlay
-    hideOverlay();
+    // Restore original page title
+    if (originalPageTitle) {
+      document.title = originalPageTitle;
+    }
+    
+    // Restore default cursor
+    document.body.style.cursor = '';
     
     // Remove class from body
     document.body.classList.remove('component-scanner-active');
+    
+    // Clear any remaining notification elements
+    const existingNotifications = document.querySelectorAll('.component-scanner-toast');
+    existingNotifications.forEach(notification => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    });
   }
   
   // Handle mouseover event
@@ -120,57 +140,55 @@
     return false;
   }
   
-  // Check if element is part of the overlay
+  // Check if element is part of the toast notification
   function isPartOfOverlay(element) {
-    return overlay && (overlay === element || overlay.contains(element));
+    // Check if element is part of toast notification
+    const toast = element.closest('.component-scanner-toast');
+    return toast !== null;
   }
   
-  // Show overlay with instructions
-  function showOverlay() {
-    // Create overlay if it doesn't exist
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.className = 'component-scanner-overlay';
-      
-      const message = document.createElement('div');
-      message.className = 'component-scanner-message';
-      
-      message.innerHTML = `
-        <h3>Scanning Mode Active</h3>
-        <p>Hover over an element and click to capture it.</p>
-        <p>Press ESC to exit scanning mode.</p>
-      `;
-      
-      overlay.appendChild(message);
-      
-      // Add click event to close
-      overlay.addEventListener('click', () => {
-        stopScanning();
-        chrome.storage.local.set({ isScanning: false });
-      });
-      
-      // Add ESC key event
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isScanning) {
-          stopScanning();
-          chrome.storage.local.set({ isScanning: false });
-        }
-      });
-    }
+  // Show subtle scanning notification
+  function showScanningNotification() {
+    // Create a subtle toast notification
+    const toast = document.createElement('div');
+    toast.className = 'component-scanner-toast';
+    toast.innerHTML = `
+      <div class="scanner-toast-content">
+        <i class="fas fa-camera"></i>
+        <div class="scanner-toast-text">
+          <strong>Scanning Mode Active</strong>
+          <span>Hover and click to capture • Press ESC to exit</span>
+        </div>
+      </div>
+    `;
     
-    // Add overlay to DOM
-    document.body.appendChild(overlay);
+    document.body.appendChild(toast);
     
-    // Remove overlay after 3 seconds
+    // Add ESC key event
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    // Fade in
     setTimeout(() => {
-      hideOverlay();
+      toast.classList.add('show');
+    }, 10);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
     }, 3000);
   }
   
-  // Hide overlay
-  function hideOverlay() {
-    if (overlay && overlay.parentNode) {
-      overlay.parentNode.removeChild(overlay);
+  // Handle ESC key to exit scanning
+  function handleEscapeKey(e) {
+    if (e.key === 'Escape' && isScanning) {
+      stopScanning();
+      chrome.storage.local.set({ isScanning: false });
+      document.removeEventListener('keydown', handleEscapeKey);
     }
   }
   
@@ -262,6 +280,21 @@
           
           // Show success message
           showCaptureMessage('Component captured successfully!');
+          
+          // Stop scanning mode after capture
+          stopScanning();
+          chrome.storage.local.set({ isScanning: false });
+          
+          // Notify background and popup that scanning stopped
+          try {
+            chrome.runtime.sendMessage({ action: 'toggleScan', isScanning: false }, response => {
+              if (chrome.runtime.lastError) {
+                console.log('Unable to notify about scan stop:', chrome.runtime.lastError.message);
+              }
+            });
+          } catch (error) {
+            console.log('Error sending scan stop notification:', error);
+          }
         });
       });
     }).catch(error => {
@@ -307,27 +340,31 @@
   
   // Show capture message
   function showCaptureMessage(message, isError = false) {
-    // Create message element
-    const messageElement = document.createElement('div');
-    messageElement.className = `component-scanner-overlay`;
+    // Create toast message element
+    const toast = document.createElement('div');
+    toast.className = 'component-scanner-toast show';
     
-    const messageContent = document.createElement('div');
-    messageContent.className = 'component-scanner-message';
-    messageContent.innerHTML = `
-      <h3>${isError ? 'Error' : 'Success'}</h3>
-      <p>${message}</p>
+    toast.innerHTML = `
+      <div class="scanner-toast-content ${isError ? 'error' : 'success'}">
+        <i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+        <div class="scanner-toast-text">
+          <strong>${isError ? 'Error' : 'Success'}</strong>
+          <span>${message}</span>
+        </div>
+      </div>
     `;
     
-    messageElement.appendChild(messageContent);
-    
     // Add to DOM
-    document.body.appendChild(messageElement);
+    document.body.appendChild(toast);
     
     // Remove after 2 seconds
     setTimeout(() => {
-      if (messageElement.parentNode) {
-        messageElement.parentNode.removeChild(messageElement);
-      }
+      toast.classList.remove('show');
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
     }, 2000);
   }
 })(); 
