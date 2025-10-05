@@ -788,12 +788,17 @@ body {
   font-weight: 500;
 }
 
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.footer-link,
 .footer-support {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  background: #FD0;
-  color: #000;
   text-decoration: none;
   font-weight: 600;
   transition: all var(--transition-fast);
@@ -801,6 +806,22 @@ body {
   border-radius: var(--radius-md);
 }
 
+.footer-link {
+  background: #0088cc;
+  color: white;
+}
+
+.footer-link:hover {
+  background: #006699;
+  transform: translateY(-1px);
+}
+
+.footer-support {
+  background: #FD0;
+  color: #000;
+}
+
+.footer-link i,
 .footer-support i {
   font-size: 14px;
 }
