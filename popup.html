@@ -74,18 +74,19 @@
           <div class="form-group">
             <label class="form-label" for="componentType">
               <i class="fas fa-code"></i>
-              Framework
+              Convert to
             </label>
             <select id="componentType" class="form-select">
               <option value="react">React (CSS Modules)</option>
               <option value="react-tailwind">React + Tailwind CSS</option>
               <option value="react-styled">React + Styled Components</option>
+              <option value="html-css">HTML + CSS</option>
             </select>
           </div>
 
           <button id="generateComponent" class="btn-primary btn-lg btn-full" disabled>
             <i class="fas fa-wand-magic-sparkles"></i>
-            <span>Generate Component</span>
+            <span>Generate Code</span>
           </button>
         </div>
 
@@ -93,13 +94,13 @@
           <div class="code-header">
             <span class="code-title">
               <i class="fas fa-code"></i>
-              Generated Component
+              Generated Code
             </span>
             <button id="copyCode" class="btn-ghost btn-sm" title="Copy Code">
               <i class="far fa-copy"></i>
             </button>
           </div>
-          <pre class="code-content"><code id="codeContent">// Select a capture and click Generate Component</code></pre>
+          <pre class="code-content"><code id="codeContent">// Select a capture and click Generate</code></pre>
         </div>
       </section>
 

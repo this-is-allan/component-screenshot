@@ -140,20 +140,20 @@ document.addEventListener('DOMContentLoaded', () => {
     generateComponentButton.innerHTML = '<div class="loading-spinner"></div> Generating...';
 
     generatedCodeContainer.classList.remove('hidden');
-    codeContent.textContent = 'Generating component...';
+    codeContent.textContent = 'Generating code...';
 
     const componentType = componentTypeSelect.value;
 
     try {
-      const code = await generateReactComponent(selectedCapture.dataUrl, apiKey, componentType);
+      const code = await generateCode(selectedCapture.dataUrl, apiKey, componentType);
       codeContent.textContent = code;
-      showNotification('<i class="fas fa-check-circle"></i> Component generated!');
+      showNotification('<i class="fas fa-check-circle"></i> Code generated!');
     } catch (error) {
       codeContent.textContent = `Error: ${error.message}`;
       showNotification('<i class="fas fa-exclamation-circle"></i> Generation failed', true);
     } finally {
       generateComponentButton.disabled = false;
-      generateComponentButton.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><span>Generate Component</span>';
+      generateComponentButton.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><span>Generate Code</span>';
     }
   });
 
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showNotification('<i class="fas fa-download"></i> Downloading...');
   }
 
-  async function generateReactComponent(imageDataUrl, apiKey, componentType) {
+  async function generateCode(imageDataUrl, apiKey, componentType) {
     try {
       let prompt = "Create a React component that looks exactly like this UI element. Use functional components and hooks.";
 
@@ -319,6 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
         prompt = "Create a React component that looks exactly like this UI element. Use functional components, hooks, and Tailwind CSS for styling.";
       } else if (componentType === 'react-styled') {
         prompt = "Create a React component that looks exactly like this UI element. Use functional components, hooks, and styled-components for styling.";
+      } else if (componentType === 'html-css') {
+        prompt = "Create HTML and CSS code that looks exactly like this UI element. Provide clean, semantic HTML with external CSS styling. Structure the code with proper HTML elements and CSS classes.";
       }
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -353,16 +355,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       const content = data.choices[0].message.content;
 
-      const codeBlockRegex = /```(?:jsx|tsx|javascript|js|react)?([\s\S]*?)```/;
+      // Updated regex to support HTML, CSS, and React code blocks
+      const codeBlockRegex = /```(?:html|css|jsx|tsx|javascript|js|react)?([\s\S]*?)```/;
       const match = content.match(codeBlockRegex);
 
-      if (match && match[1]) {
+      if (match?.[1]) {
         return match[1].trim();
       }
 
       return content;
     } catch (error) {
-      console.error('Error generating component:', error);
+      console.error('Error generating code:', error);
       throw error;
     }
   }
