@@ -1,87 +1,33 @@
-<a href="https://www.buymeacoffee.com/centraldatribo"><img src="https://img.buymeacoffee.com/button-api/?text=give me energy&emoji=&slug=centraldatribo&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" /></a>
-<a href="https://www.buymeacoffee.com/centraldatribo"><img src="https://img.buymeacoffee.com/button-api/?text=give me energy&emoji=&slug=centraldatribo&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" /></a>
-<a href="https://www.buymeacoffee.com/centraldatribo"><img src="https://img.buymeacoffee.com/button-api/?text=give me energy&emoji=&slug=centraldatribo&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff" /></a>
+# Component Capture
 
-# 📸 Capture web components with AI - Chrome Extension
+Chrome extension to capture web elements and generate React code with AI.
 
-Easily capture individual web elements with a simple hover and click! 🚀  
+## Features
 
-## ✨ Features
-- **Highlight Elements:** Hover over any web component to see a red border.
-- **One-Click Screenshot:** Click to capture only the selected element.
-- **Auto Copy to Clipboard:** The screenshot is instantly copied for easy sharing.
-- **AI Component Generation:** Generate React components from your screenshots using OpenAI.
-- **Multiple Component Types:** Choose between React, React + Tailwind, or React + Styled Components.
-- **Lightweight & Fast:** Works seamlessly on any website.
-- **Ideal for Developers, Designers & Testers!**  
+- Hover and click to capture any element
+- AI-powered code generation (React, Tailwind, Styled Components, HTML+CSS)
+- Auto copy screenshots to clipboard
+- Capture history with saved generated code
 
-## 📥 Installation
+## Installation
 
-1. **Download the Source Code:**  
-   ```sh
-   git clone https://github.com/yourusername/element-screenshot.git
-   cd element-screenshot
-   ```
+1. Clone this repo
+2. Open `chrome://extensions/` in Chrome
+3. Enable Developer Mode
+4. Click "Load unpacked" and select the folder
 
-2. **Load the Extension in Chrome:**
-   - Open Chrome and go to chrome://extensions/.
-   - Enable Developer Mode (top right).
-   - Click Load unpacked and select the project folder.
+## Usage
 
-3. **Start Capturing Screenshots!** 🎉
+1. Click the extension icon and start scanning
+2. Hover over any element and click to capture
+3. Add your OpenAI API key in settings
+4. Select a capture and generate code
 
-## 🚀 How to Use
+## Support
 
-### Capturing Screenshots
-1. Click on the Element Screenshot extension icon in the toolbar.
-2. Activate Scan Mode from the popup.
-3. Hover over any element – it will be highlighted with a red border.
-4. Click on the element to take a screenshot.
-5. The image is automatically copied to the clipboard!
+- [Buy me a coffee](https://www.buymeacoffee.com/centraldatribo)
+- [Contact on Telegram](https://t.me/untitled_dev)
 
-### Generating React Components
-1. Capture a screenshot of a UI element.
-2. In the extension popup, click "Select" on the screenshot you want to use.
-3. Enter your OpenAI API key (required only once).
-4. Choose the component type (React, React + Tailwind, React + Styled Components).
-5. Click "Generate Component".
-6. Copy the generated code to use in your project!
+## License
 
-## 🛠️ Technologies Used
-- JavaScript (Vanilla JS)
-- Chrome Extensions API
-- Clipboard API
-- Canvas for Image Processing
-- OpenAI API for AI-powered component generation (using GPT-4o model)
-
-## 🏗️ Development Guide
-
-### Clone the Repository
-
-```sh
-git clone https://github.com/yourusername/element-screenshot.git
-cd element-screenshot
-```
-
-### Modify the Extension
-- Edit content.js to adjust element selection behavior.
-- Modify popup.html and popup.js to update the UI.
-- Adjust permissions in manifest.json as needed.
-
-### Reload the Extension
-
-After making changes, reload the extension from chrome://extensions/.
-
-## 🔑 API Key Security
-
-Your OpenAI API key is stored locally in your browser's storage and is only used to make requests to the OpenAI API. It is never sent to any other server.
-
-## 🐛 Issues & Contributions
-
-Feel free to open an issue or submit a Pull Request if you want to improve the extension.
-
-## 📜 License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-
-## 🚀 Enjoy faster, more precise element screenshots and AI-powered component generation!
+MIT
