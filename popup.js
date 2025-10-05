@@ -138,7 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  toggleButton.addEventListener('click', handleScanToggle);
+  if (toggleButton) {
+    toggleButton.addEventListener('click', handleScanToggle);
+  }
   toggleButtonGenerator.addEventListener('click', handleScanToggle);
 
   clearHistoryButton.addEventListener('click', () => {
