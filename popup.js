@@ -77,6 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+
+    // Fechar o popup quando iniciar o escaneamento
+    if (isScanning) {
+      setTimeout(() => {
+        window.close();
+      }, 100);
+    }
   });
 
   clearHistoryButton.addEventListener('click', () => {
