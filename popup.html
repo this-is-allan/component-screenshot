@@ -34,6 +34,10 @@
           <i class="fas fa-history"></i>
           <span>History</span>
         </button>
+        <button class="tab-button" data-tab="settings">
+          <i class="fas fa-cog"></i>
+          <span>Settings</span>
+        </button>
       </nav>
 
       <!-- Generator Tab -->
@@ -141,6 +145,42 @@
               </div>
               <p class="empty-state-text">No captures yet</p>
               <p class="empty-state-hint">Start scanning to capture elements</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Settings Tab -->
+      <div class="tab-content" id="settings-tab">
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-cog"></i>
+              Extension Settings
+            </h2>
+          </div>
+
+          <div class="settings-group">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-title">Click Widget</div>
+                <div class="setting-description">Show widget when clicking any element (not just in scan mode)</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="clickWidgetToggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-title">Auto-capture on Click</div>
+                <div class="setting-description">Automatically capture elements when clicking them</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="autoCaptureToggle">
+                <span class="toggle-slider"></span>
+              </label>
             </div>
           </div>
         </section>
