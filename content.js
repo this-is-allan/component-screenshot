@@ -437,8 +437,6 @@
 
     // Get element position for widget placement
     const rect = element.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
     // Create widget
     const widget = document.createElement('div');
@@ -466,6 +464,12 @@
                 <input type="radio" name="componentFormat" value="jsx">
                 <span>JSX</span>
               </label>
+            </div>
+          </div>
+          <div class="transformation-info">
+            <div class="info-item">
+              <i class="fas fa-arrow-right"></i>
+              <span>div → section</span>
             </div>
           </div>
           <div class="option-group">
@@ -522,14 +526,55 @@
       </div>
     `;
 
-    // Position widget near the captured element
-    const widgetTop = Math.max(10, rect.top + scrollTop - 10);
-    const widgetLeft = Math.max(10, rect.left + scrollLeft + rect.width + 20);
+    // Position widget near the captured element with viewport detection
+    const widgetWidth = 500; // max-width from CSS
+    const widgetHeight = 400; // estimated height
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // Calculate initial position (to the right of element)
+    let widgetTop = rect.top + scrollTop - 10;
+    let widgetLeft = rect.left + scrollLeft + rect.width + 20;
+    
+    // Adjust if widget would go off-screen to the right
+    if (widgetLeft + widgetWidth > viewportWidth + scrollLeft) {
+      // Position to the left of element instead
+      widgetLeft = rect.left + scrollLeft - widgetWidth - 20;
+    }
+    
+    // Adjust if widget would go off-screen to the left
+    if (widgetLeft < scrollLeft + 10) {
+      // Center horizontally in viewport
+      widgetLeft = scrollLeft + (viewportWidth - widgetWidth) / 2;
+      // Also center vertically for better visibility
+      widgetTop = scrollTop + (viewportHeight - widgetHeight) / 2;
+    }
+    
+    // Adjust if widget would go off-screen at the top
+    if (widgetTop < scrollTop + 10) {
+      widgetTop = scrollTop + 10;
+    }
+    
+    // Adjust if widget would go off-screen at the bottom
+    if (widgetTop + widgetHeight > scrollTop + viewportHeight - 10) {
+      widgetTop = scrollTop + viewportHeight - widgetHeight - 10;
+    }
+    
+    // Ensure minimum margins
+    widgetTop = Math.max(scrollTop + 10, widgetTop);
+    widgetLeft = Math.max(scrollLeft + 10, widgetLeft);
     
     widget.style.top = `${widgetTop}px`;
     widget.style.left = `${widgetLeft}px`;
 
     document.body.appendChild(widget);
+    
+    // Add smooth positioning animation
+    requestAnimationFrame(() => {
+      widget.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    });
 
     // Add event listeners
     const closeBtn = widget.querySelector('.widget-close');

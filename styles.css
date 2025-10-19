@@ -331,6 +331,35 @@
   border-color: #4a6cf7;
 }
 
+.transformation-info {
+  margin: 16px 0;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #1a2332 0%, #0f1419 100%);
+  border: 1px solid #2a4bd4;
+  border-radius: 8px;
+  border-left: 4px solid #4a6cf7;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.info-item i {
+  color: #4a6cf7;
+  font-size: 16px;
+}
+
+.info-item span {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  color: #4a6cf7;
+  font-weight: 600;
+}
+
 .widget-actions {
   display: flex;
   gap: 12px;
