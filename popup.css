@@ -360,30 +360,10 @@ body {
    ========================================== */
 
 .captures-section,
-.ai-section,
-.selected-capture-section {
+.ai-section {
   padding: var(--space-lg);
   border-top: 1px solid var(--color-border-light);
   background: var(--color-bg-secondary);
-}
-
-.selected-capture-preview {
-  background: var(--color-bg-primary);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  min-height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.selected-capture-preview img {
-  width: 100%;
-  height: auto;
-  display: block;
-  max-height: 250px;
-  object-fit: contain;
 }
 
 .section-header {

@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let isScanning = false;
   let selectedCapture = null;
-  let latestCapture = null;
 
   // Tab switching logic
   tabButtons.forEach(button => {
@@ -71,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   loadCaptureHistory();
-  loadLatestCapture();
 
   // Listen for messages from content script (e.g., when scanning stops after capture)
   chrome.runtime.onMessage.addListener((message) => {
@@ -83,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (message.action === 'newCapture') {
       loadCaptureHistory();
-      loadLatestCapture();
     }
   });
 
@@ -214,12 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   generateComponentButton.addEventListener('click', async () => {
-    const captureToUse = selectedCapture || latestCapture;
-    if (!captureToUse) {
-      showNotification('<i class="fas fa-exclamation-circle"></i> No capture available', true);
+    if (!selectedCapture) {
+      showNotification('<i class="fas fa-exclamation-circle"></i> Please select a capture from history', true);
       return;
     }
-    await performCodeGeneration(captureToUse, generateComponentButton);
+    await performCodeGeneration(selectedCapture, generateComponentButton);
   });
 
   copyCodeButton.addEventListener('click', () => {
@@ -334,7 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
           card.classList.add('selected');
           selectedCapture = capture;
           updateGenerateButtonState();
-          updateSelectedCapturePreview(capture);
           showNotification('<i class="fas fa-check"></i> Capture selected');
         });
 
@@ -378,41 +373,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateGenerateButtonState() {
     chrome.storage.local.get(['apiKey'], (result) => {
-      const hasCapture = selectedCapture || latestCapture;
-      generateComponentButton.disabled = !result.apiKey || !hasCapture;
+      generateComponentButton.disabled = !result.apiKey || !selectedCapture;
     });
   }
 
-  function loadLatestCapture() {
-    chrome.storage.local.get(['captures'], (result) => {
-      const captures = result.captures || [];
-      if (captures.length > 0) {
-        latestCapture = captures[0];
-        updateSelectedCapturePreview(latestCapture);
-      } else {
-        latestCapture = null;
-        updateSelectedCapturePreview(null);
-      }
-      updateGenerateButtonState();
-    });
-  }
-
-  function updateSelectedCapturePreview(capture) {
-    const previewContainer = document.getElementById('selectedCapturePreview');
-    if (capture) {
-      previewContainer.innerHTML = `<img src="${capture.thumbnail}" alt="Selected Capture">`;
-    } else {
-      previewContainer.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-camera"></i>
-          </div>
-          <p class="empty-state-text">No capture yet</p>
-          <p class="empty-state-hint">Start scanning to capture an element</p>
-        </div>
-      `;
-    }
-  }
 
   function formatTime(date) {
     const now = new Date();
@@ -534,7 +498,6 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'newCapture') {
       loadCaptureHistory();
-      loadLatestCapture();
       showNotification('<i class="fas fa-camera"></i> New capture added!');
       if (sendResponse) sendResponse({ status: 'received' });
     }

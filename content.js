@@ -276,7 +276,8 @@
       ignoreElements: (el) => {
         // Ignore toast notifications and scanner overlays
         return el.classList.contains('component-scanner-toast') || 
-               el.classList.contains('component-scanner-tooltip');
+               el.classList.contains('component-scanner-tooltip') ||
+               el.classList.contains('component-scanner-widget');
       }
     }).then(canvas => {
       // Immediate feedback - stop scanning and show success message first
@@ -291,6 +292,9 @@
       
       // Copy to clipboard immediately (non-blocking)
       copyImageToClipboard(dataUrl);
+      
+      // Show code generation widget
+      showCodeWidget(element, dataUrl);
       
       // Save to storage and notify (combined operations for efficiency)
       chrome.storage.local.get(['captures'], (result) => {
@@ -421,5 +425,256 @@
         }
       }, 300);
     }, 2000);
+  }
+
+  // Show code generation widget
+  function showCodeWidget(element, dataUrl) {
+    // Remove any existing widget
+    const existingWidget = document.querySelector('.component-scanner-widget');
+    if (existingWidget) {
+      existingWidget.remove();
+    }
+
+    // Get element position for widget placement
+    const rect = element.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    // Create widget
+    const widget = document.createElement('div');
+    widget.className = 'component-scanner-widget';
+    widget.innerHTML = `
+      <div class="widget-header">
+        <div class="widget-title">
+          <i class="fas fa-code"></i>
+          <span>Generated Code</span>
+        </div>
+        <button class="widget-close" title="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="widget-content">
+        <div class="widget-options">
+          <div class="option-group">
+            <label>Component Format:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="componentFormat" value="html" checked>
+                <span>HTML</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="componentFormat" value="jsx">
+                <span>JSX</span>
+              </label>
+            </div>
+          </div>
+          <div class="option-group">
+            <label>Style Format:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="styleFormat" value="tailwind" checked>
+                <span>Tailwind CSS</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="styleFormat" value="inline">
+                <span>Inline CSS</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="styleFormat" value="external">
+                <span>External CSS</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="styleFormat" value="local">
+                <span>Local CSS</span>
+              </label>
+            </div>
+          </div>
+          <div class="option-group">
+            <label>Media Query:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="mediaQuery" value="on" checked>
+                <span>On</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="mediaQuery" value="off">
+                <span>Off</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="widget-actions">
+          <button class="generate-btn" disabled>
+            <i class="fas fa-wand-magic-sparkles"></i>
+            <span>Generate Code</span>
+          </button>
+          <button class="copy-btn" disabled>
+            <i class="fas fa-copy"></i>
+            <span>Copy</span>
+          </button>
+        </div>
+        <div class="code-preview">
+          <div class="code-header">
+            <span>Generated Code</span>
+          </div>
+          <pre class="code-content"><code>Click "Generate Code" to create component code</code></pre>
+        </div>
+      </div>
+    `;
+
+    // Position widget near the captured element
+    const widgetTop = Math.max(10, rect.top + scrollTop - 10);
+    const widgetLeft = Math.max(10, rect.left + scrollLeft + rect.width + 20);
+    
+    widget.style.top = `${widgetTop}px`;
+    widget.style.left = `${widgetLeft}px`;
+
+    document.body.appendChild(widget);
+
+    // Add event listeners
+    const closeBtn = widget.querySelector('.widget-close');
+    const generateBtn = widget.querySelector('.generate-btn');
+    const copyBtn = widget.querySelector('.copy-btn');
+    const codeContent = widget.querySelector('.code-content');
+
+    closeBtn.addEventListener('click', () => {
+      widget.remove();
+    });
+
+    generateBtn.addEventListener('click', async () => {
+      await generateCodeForWidget(dataUrl, generateBtn, codeContent);
+      copyBtn.disabled = false;
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const code = codeContent.textContent;
+      if (code && code !== 'Click "Generate Code" to create component code') {
+        navigator.clipboard.writeText(code).then(() => {
+          showCaptureMessage('Code copied to clipboard!');
+        }).catch(() => {
+          showCaptureMessage('Failed to copy code', true);
+        });
+      }
+    });
+
+    // Check for API key and enable generate button
+    chrome.storage.local.get(['apiKey'], (result) => {
+      if (result.apiKey) {
+        generateBtn.disabled = false;
+      } else {
+        generateBtn.innerHTML = '<i class="fas fa-key"></i><span>API Key Required</span>';
+        generateBtn.title = 'Please set your OpenAI API key in the extension popup';
+      }
+    });
+
+    // Close widget when clicking outside
+    const handleOutsideClick = (e) => {
+      if (!widget.contains(e.target)) {
+        widget.remove();
+        document.removeEventListener('click', handleOutsideClick);
+      }
+    };
+    
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 100);
+  }
+
+  // Generate code for widget
+  async function generateCodeForWidget(dataUrl, button, codeElement) {
+    const originalButtonHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<div class="loading-spinner"></div><span>Generating...</span>';
+
+    try {
+      const result = await chrome.storage.local.get(['apiKey']);
+      const apiKey = result.apiKey;
+
+      if (!apiKey) {
+        throw new Error('API key not found');
+      }
+
+      // Get selected options
+      const componentFormat = document.querySelector('input[name="componentFormat"]:checked').value;
+      const styleFormat = document.querySelector('input[name="styleFormat"]:checked').value;
+      const mediaQuery = document.querySelector('input[name="mediaQuery"]:checked').value;
+
+      const code = await generateCode(dataUrl, apiKey, componentFormat, styleFormat, mediaQuery);
+      codeElement.textContent = code;
+      showCaptureMessage('Code generated successfully!');
+
+    } catch (error) {
+      console.error('Error generating code:', error);
+      codeElement.textContent = `Error: ${error.message}`;
+      showCaptureMessage('Failed to generate code', true);
+    } finally {
+      button.disabled = false;
+      button.innerHTML = originalButtonHTML;
+    }
+  }
+
+  // Generate code using OpenAI API
+  async function generateCode(imageDataUrl, apiKey, componentFormat, styleFormat, mediaQuery) {
+    let prompt = "Create a component that looks exactly like this UI element.";
+
+    if (componentFormat === 'jsx') {
+      prompt = "Create a React component that looks exactly like this UI element. Use functional components and hooks.";
+    }
+
+    if (styleFormat === 'tailwind') {
+      prompt += " Use Tailwind CSS for styling.";
+    } else if (styleFormat === 'inline') {
+      prompt += " Use inline CSS styles.";
+    } else if (styleFormat === 'external') {
+      prompt += " Use external CSS classes.";
+    } else if (styleFormat === 'local') {
+      prompt += " Use CSS modules or local CSS classes.";
+    }
+
+    if (mediaQuery === 'on') {
+      prompt += " Include responsive design with media queries.";
+    }
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              {
+                type: "image_url",
+                image_url: { url: imageDataUrl }
+              }
+            ]
+          }
+        ],
+        max_tokens: 2000
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || 'API request failed');
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    // Extract code from markdown code blocks
+    const codeBlockRegex = /```(?:html|css|jsx|tsx|javascript|js|react)?([\s\S]*?)```/;
+    const match = content.match(codeBlockRegex);
+
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+
+    return content;
   }
 })(); 
