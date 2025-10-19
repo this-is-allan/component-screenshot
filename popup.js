@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const apiKeyInput = document.getElementById('apiKey');
   const saveApiKeyButton = document.getElementById('saveApiKey');
-  const componentTypeSelect = document.getElementById('componentType');
+  const formatButtons = document.querySelectorAll('.format-btn');
+  const mediaQueryToggle = document.getElementById('mediaQueryToggle');
   const generateComponentButton = document.getElementById('generateComponent');
   const generatedCodeContainer = document.getElementById('generatedCode');
   const codeContent = document.getElementById('codeContent');
@@ -18,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let isScanning = false;
   let selectedCapture = null;
+  let selectedComponentFormat = 'html'; // Default selection
+  let selectedStyleFormat = 'tailwind'; // Default selection
+  let mediaQueryEnabled = false; // Default selection
 
   // Tab switching logic
   tabButtons.forEach(button => {
@@ -78,6 +82,62 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear the flag
         chrome.storage.local.set({ showCaptureSuccess: false });
       }
+    }
+  });
+
+  // Format button selection logic
+  formatButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const category = button.getAttribute('data-category');
+      const format = button.getAttribute('data-format');
+      
+      // Remove active class from buttons in the same category
+      const categoryButtons = document.querySelectorAll(`[data-category="${category}"]`);
+      categoryButtons.forEach(btn => btn.classList.remove('active'));
+      
+      // Add active class to clicked button
+      button.classList.add('active');
+      
+      // Update selected format based on category
+      if (category === 'component') {
+        selectedComponentFormat = format;
+        chrome.storage.local.set({ selectedComponentFormat });
+      } else if (category === 'style') {
+        selectedStyleFormat = format;
+        chrome.storage.local.set({ selectedStyleFormat });
+      }
+    });
+  });
+
+  // Media query toggle logic
+  mediaQueryToggle.addEventListener('change', () => {
+    mediaQueryEnabled = mediaQueryToggle.checked;
+    chrome.storage.local.set({ mediaQueryEnabled });
+  });
+
+  // Restore selections from storage
+  chrome.storage.local.get(['selectedComponentFormat', 'selectedStyleFormat', 'mediaQueryEnabled'], (result) => {
+    if (result.selectedComponentFormat) {
+      selectedComponentFormat = result.selectedComponentFormat;
+      const activeButton = document.querySelector(`[data-category="component"][data-format="${selectedComponentFormat}"]`);
+      if (activeButton) {
+        document.querySelectorAll('[data-category="component"]').forEach(btn => btn.classList.remove('active'));
+        activeButton.classList.add('active');
+      }
+    }
+
+    if (result.selectedStyleFormat) {
+      selectedStyleFormat = result.selectedStyleFormat;
+      const activeButton = document.querySelector(`[data-category="style"][data-format="${selectedStyleFormat}"]`);
+      if (activeButton) {
+        document.querySelectorAll('[data-category="style"]').forEach(btn => btn.classList.remove('active'));
+        activeButton.classList.add('active');
+      }
+    }
+
+    if (result.mediaQueryEnabled !== undefined) {
+      mediaQueryEnabled = result.mediaQueryEnabled;
+      mediaQueryToggle.checked = mediaQueryEnabled;
     }
   });
 
@@ -227,10 +287,12 @@ document.addEventListener('DOMContentLoaded', () => {
     generatedCodeContainer.classList.remove('hidden');
     codeContent.textContent = 'Generating code...';
 
-    const componentType = componentTypeSelect.value;
+    const componentFormat = selectedComponentFormat;
+    const styleFormat = selectedStyleFormat;
+    const includeMediaQuery = mediaQueryEnabled;
 
     try {
-      const code = await generateCode(capture.dataUrl, apiKey, componentType);
+      const code = await generateCode(capture.dataUrl, apiKey, componentFormat, styleFormat, includeMediaQuery);
       codeContent.textContent = code;
       showNotification('<i class="fas fa-check-circle"></i> Code generated!');
 
@@ -240,7 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const captureIndex = captures.findIndex(c => c.timestamp === capture.timestamp);
         if (captureIndex !== -1) {
           captures[captureIndex].generatedCode = code;
-          captures[captureIndex].componentType = componentType;
+          captures[captureIndex].componentFormat = componentFormat;
+          captures[captureIndex].styleFormat = styleFormat;
+          captures[captureIndex].mediaQueryEnabled = includeMediaQuery;
           chrome.storage.local.set({ captures }, () => {
             loadCaptureHistory();
           });
@@ -467,16 +531,45 @@ document.addEventListener('DOMContentLoaded', () => {
     showNotification('<i class="fas fa-download"></i> Downloading...');
   }
 
-  async function generateCode(imageDataUrl, apiKey, componentType) {
+  async function generateCode(imageDataUrl, apiKey, componentFormat, styleFormat, includeMediaQuery) {
     try {
-      let prompt = "Create a React component that looks exactly like this UI element. Use functional components and hooks.";
-
-      if (componentType === 'react-tailwind') {
-        prompt = "Create a React component that looks exactly like this UI element. Use functional components, hooks, and Tailwind CSS for styling.";
-      } else if (componentType === 'react-styled') {
-        prompt = "Create a React component that looks exactly like this UI element. Use functional components, hooks, and styled-components for styling.";
-      } else if (componentType === 'html-css') {
-        prompt = "Create HTML and CSS code that looks exactly like this UI element. IMPORTANT: Put both HTML and CSS in a single file using a <style> tag in the <head> section. Provide clean, semantic HTML with internal CSS styling. Structure the code with proper HTML elements and CSS classes.";
+      let prompt = "";
+      
+      // Build prompt based on component format
+      if (componentFormat === 'html') {
+        prompt = "Create HTML and CSS code that looks exactly like this UI element.";
+        
+        // Add styling instructions based on style format
+        if (styleFormat === 'inline') {
+          prompt += " Use inline CSS styles directly on HTML elements.";
+        } else if (styleFormat === 'external') {
+          prompt += " Use external CSS with a separate stylesheet. Include both HTML file and CSS file.";
+        } else if (styleFormat === 'local') {
+          prompt += " Use local CSS with a <style> tag in the <head> section.";
+        } else if (styleFormat === 'tailwind') {
+          prompt += " Use Tailwind CSS v4 utility classes for styling.";
+        }
+        
+        prompt += " Provide clean, semantic HTML with proper structure.";
+        
+      } else if (componentFormat === 'jsx') {
+        prompt = "Create a React JSX component that looks exactly like this UI element. Use functional components and hooks.";
+        
+        // Add styling instructions based on style format
+        if (styleFormat === 'inline') {
+          prompt += " Use inline styles with the style prop.";
+        } else if (styleFormat === 'external') {
+          prompt += " Use external CSS with a separate stylesheet. Include both JSX component and CSS file.";
+        } else if (styleFormat === 'local') {
+          prompt += " Use CSS modules or local CSS classes.";
+        } else if (styleFormat === 'tailwind') {
+          prompt += " Use Tailwind CSS v4 utility classes for styling.";
+        }
+      }
+      
+      // Add media query instruction if enabled
+      if (includeMediaQuery) {
+        prompt += " Include responsive design beyond 768px and 1024px breakpoints using media queries.";
       }
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {

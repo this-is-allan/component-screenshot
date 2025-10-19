@@ -621,6 +621,107 @@ body {
 }
 
 /* ==========================================
+   Format Selection Buttons
+   ========================================== */
+
+.format-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+
+.format-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+  font-family: var(--font-family);
+  text-align: center;
+  min-height: 70px;
+}
+
+.format-btn:hover {
+  border-color: var(--color-gray-300);
+  background: var(--color-bg-secondary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.format-btn:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.format-btn.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.format-btn i {
+  font-size: 18px;
+  color: var(--color-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.format-btn.active i {
+  color: var(--color-primary);
+}
+
+.format-btn span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.format-btn.active span {
+  color: var(--color-primary);
+}
+
+/* Style format buttons - 4 columns */
+.format-buttons[data-category="style"] {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.format-buttons[data-category="style"] .format-btn {
+  min-height: 60px;
+}
+
+.format-buttons[data-category="style"] .format-btn i {
+  font-size: 16px;
+}
+
+.format-buttons[data-category="style"] .format-btn span {
+  font-size: 12px;
+}
+
+/* ==========================================
+   Toggle Container
+   ========================================== */
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+}
+
+.toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* ==========================================
    Buttons
    ========================================== */
 

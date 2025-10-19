@@ -91,16 +91,59 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="componentType">
+            <label class="form-label">
               <i class="fas fa-code"></i>
-              Convert to
+              Component Format
             </label>
-            <select id="componentType" class="form-select">
-              <option value="react">React (CSS Modules)</option>
-              <option value="react-tailwind">React + Tailwind CSS</option>
-              <option value="react-styled">React + Styled Components</option>
-              <option value="html-css">HTML + CSS</option>
-            </select>
+            <div class="format-buttons">
+              <button class="format-btn active" data-format="html" data-category="component">
+                <i class="fab fa-html5"></i>
+                <span>HTML</span>
+              </button>
+              <button class="format-btn" data-format="jsx" data-category="component">
+                <i class="fab fa-react"></i>
+                <span>JSX</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-paint-brush"></i>
+              Style Format
+            </label>
+            <div class="format-buttons">
+              <button class="format-btn active" data-format="tailwind" data-category="style">
+                <i class="fas fa-wind"></i>
+                <span>Tailwind v4</span>
+              </button>
+              <button class="format-btn" data-format="inline" data-category="style">
+                <i class="fas fa-code"></i>
+                <span>Inline CSS</span>
+              </button>
+              <button class="format-btn" data-format="external" data-category="style">
+                <i class="fas fa-file-css"></i>
+                <span>External CSS</span>
+              </button>
+              <button class="format-btn" data-format="local" data-category="style">
+                <i class="fas fa-folder"></i>
+                <span>Local CSS</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-mobile-alt"></i>
+              Media Query
+            </label>
+            <div class="toggle-container">
+              <label class="toggle-switch">
+                <input type="checkbox" id="mediaQueryToggle">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label">Enable responsive design</span>
+            </div>
           </div>
 
           <button id="generateComponent" class="btn-primary btn-lg btn-full" disabled>
